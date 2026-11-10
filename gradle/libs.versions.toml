@@ -1,8 +1,9 @@
 [versions]
 zixing-core = "3.5.4"
-agp = "9.0.1"
+#noinspection AndroidGradlePluginVersion
+agp = "9.4.1"
 preference = "1.2.1"
-material = "1.13.0"
+material = "1.14.0"
 
 [libraries]
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }

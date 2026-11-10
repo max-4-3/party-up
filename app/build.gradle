@@ -4,12 +4,13 @@ plugins {
 
 android {
     namespace "me.ocv.partyup"
-    compileSdk 36
+    compileSdk 37
 
     defaultConfig {
         applicationId "me.ocv.partyup"
         minSdk 21
-        targetSdk 35
+        //noinspection OldTargetApi
+        targetSdk 36
         versionCode 10000
         versionName "1.0.0"
         multiDexEnabled true
@@ -29,6 +30,11 @@ android {
             minifyEnabled true
             signingConfig signingConfigs.release
         }
+
+        debug {
+            applicationIdSuffix '.debug'
+            resValue("string", "app_name", "Da, Party UP!")
+        }
     }
 
     compileOptions {
@@ -39,6 +45,7 @@ android {
     buildFeatures {
         viewBinding true
         buildConfig true
+        resValues true
     }
 
     lint {
@@ -48,6 +55,16 @@ android {
     // "Lint found fatal errors while assembling a release target:"
     // "Google Play requires that apps target API level 29 or higher"
     // lol how about no
+}
+
+def appName = "party_up"
+androidComponents {
+    onVariants(selector().all(), { variant ->
+        variant.outputs.each { output ->
+            def versionName = android.defaultConfig.versionName
+            output.outputFileName.set("${appName}-${variant.name}-${versionName}.apk")
+        }
+    })
 }
 
 dependencies {
