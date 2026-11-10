@@ -13,6 +13,7 @@ import android.text.method.LinkMovementMethod;
 import androidx.appcompat.app.AppCompatActivity;
 
 import me.ocv.partyup.databinding.ActivityMainBinding;
+import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.service.UploaderService;
 import me.ocv.partyup.utils.PermissionUtils;
 import me.ocv.partyup.utils.SoundUtils;
@@ -105,6 +106,9 @@ public class MainActivity extends AppCompatActivity {
         binding.errBtn.setOnClickListener(v -> SoundUtils.playError());
         binding.successBtn.setOnClickListener(v -> SoundUtils.playSuccess());
         binding.bgBtn.setOnClickListener(v -> SoundUtils.playBackGround());
+        binding.testBtn.setOnClickListener(v -> UploadInfoActivity.start(MainActivity.this, new UploadStatus(
+                1, "free_robux.exe", 40, 200, 20, System.currentTimeMillis(), ""
+        )));
     }
 
 }

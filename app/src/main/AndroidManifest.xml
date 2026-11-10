@@ -37,6 +37,10 @@
             android:theme="@style/Theme.PartyUP.Transparent" />
 
         <activity
+            android:name=".UploadInfoActivity"
+            android:exported="true" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

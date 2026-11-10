@@ -1,4 +1,5 @@
 [versions]
+work-runtime = "2.12.0"
 zixing-core = "3.5.4"
 #noinspection AndroidGradlePluginVersion
 agp = "9.4.1"
@@ -8,6 +9,7 @@ material = "1.14.0"
 [libraries]
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 preference = { module = "androidx.preference:preference", version.ref = "preference" }
+work-runtime = { module = "androidx.work:work-runtime", version.ref = "work-runtime" }
 zixing-core = { module = "com.google.zxing:core", version.ref = "zixing-core" }
 
 [plugins]
