@@ -3,9 +3,9 @@ package me.ocv.partyup.room.database;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
-import androidx.room3.Database;
-import androidx.room3.Room;
-import androidx.room3.RoomDatabase;
+import androidx.room.Database;
+import androidx.room.Room;
+import androidx.room.RoomDatabase;
 
 import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.room.dao.UploadStatusDao;

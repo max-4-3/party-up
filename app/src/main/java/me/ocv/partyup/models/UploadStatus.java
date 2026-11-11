@@ -4,10 +4,10 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
-import androidx.room3.ColumnInfo;
-import androidx.room3.Entity;
-import androidx.room3.Ignore;
-import androidx.room3.PrimaryKey;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
 
 import org.jetbrains.annotations.Contract;
 
@@ -20,6 +20,7 @@ public final class UploadStatus implements Parcelable {
     }
 
     @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "id")
     public long id = 0;
 
     @ColumnInfo(name = "title")
@@ -46,8 +47,8 @@ public final class UploadStatus implements Parcelable {
     }
 
     @Ignore
-    public double getElapsedMillis() {
-        return startedWhen > 0 ? System.currentTimeMillis() - startedWhen : 0;
+    public UploadStatus snapshot() {
+        return new UploadStatus(id, title, done, total, startedWhen, statusText, status);
     }
 
     public UploadStatus(long id, String title, long done, long total, long startedWhen, String statusText, Status status) {
@@ -74,9 +75,10 @@ public final class UploadStatus implements Parcelable {
         total = in.readLong();
         startedWhen = in.readLong();
         statusText = in.readString();
+        status = Status.valueOf(in.readString());
     }
 
-    public static final Creator<UploadStatus> CREATOR = new Creator<UploadStatus>() {
+    public static final Creator<UploadStatus> CREATOR = new Creator<>() {
         @Override
         public UploadStatus createFromParcel(Parcel in) {
             return new UploadStatus(in);
@@ -101,5 +103,12 @@ public final class UploadStatus implements Parcelable {
         dest.writeLong(total);
         dest.writeLong(startedWhen);
         dest.writeString(statusText);
+        dest.writeString(status.name());
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "UploadStatus(" + "id=" + id + ", title=" + title + ", done=" + done + ", total=" + total + ", startedWhen=" + startedWhen + ", statusText=" + statusText + ", status=" + status + ')';
     }
 }

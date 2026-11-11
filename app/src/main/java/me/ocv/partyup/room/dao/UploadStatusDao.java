@@ -1,11 +1,12 @@
 package me.ocv.partyup.room.dao;
 
 import androidx.annotation.NonNull;
-import androidx.room3.Dao;
-import androidx.room3.Insert;
-import androidx.room3.OnConflictStrategy;
-import androidx.room3.Query;
-import androidx.room3.Update;
+import androidx.lifecycle.LiveData;
+import androidx.room.Dao;
+import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
+import androidx.room.Query;
+import androidx.room.Update;
 
 import java.util.List;
 
@@ -16,22 +17,23 @@ public interface UploadStatusDao {
     @Query("select * from upload_status;")
     List<UploadStatus> getAll();
 
-    @Query("select * from upload_status where id = :id;")
+    @Query("select * from upload_status where id is :id;")
     UploadStatus getById(long id);
 
+    @Query("select * from upload_status where id is :id;")
+    LiveData<UploadStatus> getByIdLive(long id);
+
     @Insert(entity = UploadStatus.class, onConflict = OnConflictStrategy.REPLACE)
-    void insert_(@NonNull UploadStatus status);
+    long insert_(UploadStatus status);
 
     @Update(entity = UploadStatus.class)
-    void update_(@NonNull UploadStatus status);
+    void update_(UploadStatus status);
 
-    default long insert(@NonNull UploadStatus status) {
-        insert_(status);
-        return status.id;
+    default void insert(@NonNull UploadStatus status) {
+        status.id = insert_(status);
     }
 
-    default long update(@NonNull UploadStatus status) {
+    default void update(@NonNull UploadStatus status) {
         update_(status);
-        return status.id;
     }
 }
