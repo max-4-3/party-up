@@ -80,6 +80,7 @@
             </intent-filter>
         </activity>
         <activity
+            android:label="TempReceiver"
             android:name=".TempReceiver"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
