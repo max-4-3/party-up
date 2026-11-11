@@ -84,7 +84,7 @@ public final class UploadStatusView extends LinearLayout {
 
         setTitle(uploadStatus.title);
         setProgress(uploadStatus.getPercentage());
-        setStatus(uploadStatus.status, uploadStatus.statusText);
+        setStatus(uploadStatus.status);
         setStats(uploadStatus);
 
         setOnStop(onStop, uploadStatus);
@@ -143,7 +143,7 @@ public final class UploadStatusView extends LinearLayout {
         statusElementBinding.uploadTimeElapsed.setText(formatDuration(System.currentTimeMillis(), uploadStatus.startedWhen));
     }
 
-    private void setStatus(UploadStatus.Status status, String statusText) {
+    private void setStatus(UploadStatus.Status status) {
         if (status == null) {
             return;
         }
@@ -170,11 +170,7 @@ public final class UploadStatusView extends LinearLayout {
             statusElementBinding.uploadProgress.setProgressTintList(color);
         }
 
-        if (!TextUtils.isEmpty(statusText)) {
-            statusElementBinding.uploadStatusText.setText(statusText);
-        } else {
-            statusElementBinding.uploadStatusText.setText(status.name());
-        }
+        statusElementBinding.uploadStatusText.setText(status.name());
     }
 
     private void setTitle(@NonNull String title) {

@@ -40,9 +40,10 @@ public final class NetworkUtils {
 
         try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream))) {
             char[] buffer = new char[BUFFER_SIZE];
+            int charsRead;
 
-            while (bufferedReader.read(buffer) > 0) {
-                builder.append(buffer);
+            while ((charsRead = bufferedReader.read(buffer)) != -1) {
+                builder.append(buffer, 0, charsRead);
             }
 
             return builder;
