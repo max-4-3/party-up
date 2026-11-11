@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "13558c44de13020d0e57759b4e2ae8d4",
+    "identityHash": "0e7f852426016fb00cbfbaef88d41458",
     "entities": [
       {
         "tableName": "upload_status",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT, `done` INTEGER NOT NULL, `total` INTEGER NOT NULL, `started_when` INTEGER NOT NULL, `status_text` TEXT, `status` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT, `done` INTEGER NOT NULL, `total` INTEGER NOT NULL, `started_when` INTEGER NOT NULL, `status_text` TEXT, `status` TEXT, `worker_id` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -46,6 +46,11 @@
             "fieldPath": "status",
             "columnName": "status",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "workerId",
+            "columnName": "worker_id",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -58,7 +63,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '13558c44de13020d0e57759b4e2ae8d4')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0e7f852426016fb00cbfbaef88d41458')"
     ]
   }
 }
