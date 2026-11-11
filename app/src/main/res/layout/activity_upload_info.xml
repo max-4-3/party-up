@@ -1,7 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp"
+        tools:ignore="UselessParent">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Upload Request"
+            android:textAlignment="center" />
+
+        <EditText
+            android:id="@+id/inputTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Title for the upload" />
+
+        <EditText
+            android:id="@+id/inputTotal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Total for the upload (int)"
+            android:inputType="number" />
+
+        <Button
+            android:id="@+id/inputDone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enqueue!" />
+
+    </LinearLayout>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="...Uploads..."
+        android:textAlignment="center"
+        android:textStyle="bold" />
+
+    <ListView
+        android:id="@+id/uploadLists"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:dividerHeight="8dp" />
 
 </LinearLayout>
