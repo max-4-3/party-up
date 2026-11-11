@@ -69,8 +69,9 @@ public final class UploadStatusView extends LinearLayout {
      * @param uploadStatus instance of UploadStatus
      * @param onStop       callback when Stop button is clicked
      * @param onPause      callback when Pause button is clicked
+     * @param onRemove     callback when Remove button is clicked
      */
-    public void setUploadStatus(@Nullable UploadStatus uploadStatus, @Nullable Consumer<UploadStatus> onStop, @Nullable Consumer<UploadStatus> onPause) {
+    public void setUploadStatus(@Nullable UploadStatus uploadStatus, @Nullable Consumer<UploadStatus> onStop, @Nullable Consumer<UploadStatus> onPause, @Nullable Consumer<UploadStatus> onRemove) {
         if (statusElementBinding == null) {
             Log.e("StatusView", "Binding is null");
             return;
@@ -88,7 +89,18 @@ public final class UploadStatusView extends LinearLayout {
 
         setOnStop(onStop, uploadStatus);
         setOnPause(onPause, uploadStatus);
+        setOnRemove(onRemove, uploadStatus);
         setInfoDialog(uploadStatus.statusText);
+    }
+
+    private void setOnRemove(@Nullable Consumer<UploadStatus> onRemove, @NonNull UploadStatus status) {
+        boolean enabled = (onRemove != null);
+        statusElementBinding.uploadActionRemove.setEnabled(enabled);
+        if (enabled) {
+            statusElementBinding.uploadActionRemove.setOnClickListener(v -> onRemove.accept(status));
+        } else {
+            statusElementBinding.uploadActionRemove.setOnClickListener(null);
+        }
     }
 
     private void setOnStop(@Nullable Consumer<UploadStatus> onStop, @NonNull UploadStatus status) {

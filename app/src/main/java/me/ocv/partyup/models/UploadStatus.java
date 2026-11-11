@@ -41,6 +41,9 @@ public final class UploadStatus implements Parcelable {
     @ColumnInfo(name = "status")
     public Status status;
 
+    @ColumnInfo(name = "worker_id")
+    public String workerId;
+
     @Ignore
     public float getPercentage() {
         return total > 0 ? ((float) done / total) * PERCENT_MUL : 0;
@@ -48,10 +51,10 @@ public final class UploadStatus implements Parcelable {
 
     @Ignore
     public UploadStatus snapshot() {
-        return new UploadStatus(id, title, done, total, startedWhen, statusText, status);
+        return new UploadStatus(id, title, done, total, startedWhen, statusText, status, workerId);
     }
 
-    public UploadStatus(long id, String title, long done, long total, long startedWhen, String statusText, Status status) {
+    public UploadStatus(long id, String title, long done, long total, long startedWhen, String statusText, Status status, String workerId) {
         this.id = id;
         this.title = title;
         this.done = done;
@@ -59,12 +62,13 @@ public final class UploadStatus implements Parcelable {
         this.startedWhen = startedWhen;
         this.statusText = statusText;
         this.status = status;
+        this.workerId = workerId;
     }
 
     @NonNull
     @Contract(" -> new")
     public static UploadStatus sample() {
-        return new UploadStatus(1, "Zuper_file.zip", 12, 200, System.currentTimeMillis(), "Uploading...", Status.RUNNING);
+        return new UploadStatus(1, "Zuper_file.zip", 12, 200, System.currentTimeMillis(), "Uploading...", Status.RUNNING, "");
     }
 
     // Parable implementations
@@ -76,6 +80,7 @@ public final class UploadStatus implements Parcelable {
         startedWhen = in.readLong();
         statusText = in.readString();
         status = Status.valueOf(in.readString());
+        workerId = in.readString();
     }
 
     public static final Creator<UploadStatus> CREATOR = new Creator<>() {
@@ -104,11 +109,12 @@ public final class UploadStatus implements Parcelable {
         dest.writeLong(startedWhen);
         dest.writeString(statusText);
         dest.writeString(status.name());
+        dest.writeString(workerId);
     }
 
     @NonNull
     @Override
     public String toString() {
-        return "UploadStatus(" + "id=" + id + ", title=" + title + ", done=" + done + ", total=" + total + ", startedWhen=" + startedWhen + ", statusText=" + statusText + ", status=" + status + ')';
+        return "UploadStatus(" + "id=" + id + ", title=" + title + ", done=" + done + ", total=" + total + ", startedWhen=" + startedWhen + ", statusText=" + statusText + ", status=" + status + ", workerId=" + workerId + ')';
     }
 }

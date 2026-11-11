@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.work.WorkManager;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -216,14 +218,30 @@ public class UploadInfoActivity extends AppCompatActivity {
         });
     }
 
-    private void bindStatusView(UploadStatusView view, UploadStatus status) {
+    private void bindStatusView(@NonNull UploadStatusView view, UploadStatus status) {
+        WorkManager manager = WorkManager.getInstance(UploadInfoActivity.this);
+
         view.setUploadStatus(status,
 
             // First callback
-            _i -> ToastUtils.show(this, "STOP"),
+            _i -> executor.execute(() -> {
+                if (!TextUtils.isEmpty(status.workerId)) {
+                    manager.cancelWorkById(UUID.fromString(status.workerId));
+                }
+            }),
 
             // Second callback
-            __i -> executor.execute(() -> repository.updateStatus(status, UploadStatus.Status.FAILED, "Manually Stopped!")));
+            __i -> ToastUtils.show(UploadInfoActivity.this, "PAUSE"),
+
+            // Third callback
+            __i -> executor.execute(() -> {
+                if (__i.id >= 0) {
+                    UploadStatusRepository.getInstance().remove(__i);
+                    if (!TextUtils.isEmpty(__i.workerId)) {
+                        manager.cancelWorkById(UUID.fromString(__i.workerId));
+                    }
+                }
+            }));
     }
 
     @Nullable

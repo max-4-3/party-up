@@ -8,7 +8,6 @@ import androidx.work.WorkerParameters;
 
 import org.jetbrains.annotations.Contract;
 
-import java.util.Random;
 import java.util.function.Consumer;
 
 import me.ocv.partyup.models.UploadStatus;
@@ -33,37 +32,51 @@ public final class UploadWork extends Worker {
         }
 
         UploadStatus uploadStatus = statusRepository.statusOf(id);
+        selected = Selected.select(statusRepository, uploadStatus, this::updateProgress);
+
         if (uploadStatus == null || uploadStatus.total == 0 || uploadStatus.total < uploadStatus.done) {
             throw new IllegalStateException("UploadWork need proper status");
         }
 
-        selected = Selected.select(statusRepository, uploadStatus, this::updateProgress);
+        if (uploadStatus.status != UploadStatus.Status.ENQUEUED) {
+            throw new IllegalStateException("UploadWork needs to be in proper state");
+        }
+
         updateProgress(uploadStatus);
     }
 
     @NonNull
     @Override
     public Result doWork() {
-        init();
-        selected.start();
-
         try {
-            Random random = new Random();
-            long limit = selected.repository.peek().total;
+            init();
+            selected.start();
 
             while (!selected.completed()) {
-                long value = random.nextLong() & Long.MAX_VALUE;
-                value = 1 + (value % limit);
+                if (isStopped()) {
+                    selected.fail(new InterruptedException("Worker was cancelled"));
+                    return Result.failure();
+                }
 
-                selected.step(value / (limit / 4));
-                Thread.sleep(10);
+                selected.step(10);
+                Thread.sleep(6000);
             }
 
             selected.complete();
             return Result.success();
         } catch (Throwable tr) {
-            selected.fail(tr);
+            if (selected != null) {
+                selected.fail(tr);
+            }
             return Result.failure();
+        }
+    }
+
+    @Override
+    public void onStopped() {
+        super.onStopped();
+        if (selected != null && !selected.completed()) {
+            selected.fail(new IllegalStateException("Worker stopped or terminated!"));
         }
     }
 

@@ -3,6 +3,7 @@ package me.ocv.partyup.room.dao;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
@@ -22,6 +23,9 @@ public interface UploadStatusDao {
 
     @Query("select * from upload_status where id is :id;")
     LiveData<UploadStatus> getByIdLive(long id);
+
+    @Delete(entity = UploadStatus.class)
+    void remove(UploadStatus status);
 
     @Insert(entity = UploadStatus.class, onConflict = OnConflictStrategy.REPLACE)
     long insert_(UploadStatus status);

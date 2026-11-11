@@ -40,7 +40,7 @@ public final class UploadStatusRepository {
 
     @NonNull
     public UploadStatus createStatus(String title, long total) {
-        UploadStatus uploadStatus = new UploadStatus(0, title, 0, total, 0, "Work Created", UploadStatus.Status.ENQUEUED);
+        UploadStatus uploadStatus = new UploadStatus(0, title, 0, total, 0, "Work Created", UploadStatus.Status.ENQUEUED, "");
         Log.d(TAG, String.format("status before add: %s", uploadStatus));
         long _id = add(uploadStatus);
         Log.d(TAG, String.format("id received from add: %s", _id));
@@ -61,6 +61,13 @@ public final class UploadStatusRepository {
         Log.d(TAG, String.format("total status: %d", status.size()));
 
         return status;
+    }
+
+    public long remove(UploadStatus status) {
+        statusDao.remove(status);
+        Log.d(TAG, String.format("[%s] removing status: %s", status.id, status));
+
+        return status.id;
     }
 
     public long add(UploadStatus status) {

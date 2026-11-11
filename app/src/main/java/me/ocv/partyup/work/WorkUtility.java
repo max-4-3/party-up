@@ -24,8 +24,12 @@ public final class WorkUtility {
     @NonNull
     public static UploadRequest enqueueWork(String title, long total) {
         UploadStatus uploadStatus = UploadStatusRepository.getInstance().createStatus(title, total);
+        WorkRequest request = new OneTimeWorkRequest.Builder(UploadWork.class).setInputData(new Data.Builder().putLong(UploadWork.STATUS_ID, uploadStatus.id).build()).setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build();
 
-        return new UploadRequest(new OneTimeWorkRequest.Builder(UploadWork.class).setInputData(new Data.Builder().putLong(UploadWork.STATUS_ID, uploadStatus.id).build()).setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build(), uploadStatus);
+        uploadStatus.workerId = request.getId().toString();
+        UploadStatusRepository.getInstance().update(uploadStatus);
+
+        return new UploadRequest(request, uploadStatus);
     }
 
     @NonNull
