@@ -6,6 +6,9 @@ zixing-core = "3.5.4"
 agp = "9.4.1"
 preference = "1.2.1"
 material = "1.14.0"
+appcompat = "1.8.0"
+activity-ktx = "1.13.0"
+constraintlayout = "2.2.2"
 
 [libraries]
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
@@ -14,6 +17,9 @@ room3-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room3-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 work-runtime = { module = "androidx.work:work-runtime", version.ref = "work-runtime" }
 zixing-core = { module = "com.google.zxing:core", version.ref = "zixing-core" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity-ktx" }
+constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
