@@ -56,10 +56,10 @@ public class XferActivity extends AppCompatActivity {
             Locale.getDefault()
     );
 
-    private final Analyzer analyzer = new Analyzer();
     private final StringBuilder serverResponse = new StringBuilder();
     private final Map<CustomFile, Section> fileSections = new LinkedHashMap<>();
     private final AtomicInteger uploadCount = new AtomicInteger(0);
+    private Analyzer analyzer;
     private ActivityXferBinding binding;
     private SharedPreferences prefs;
     private UploaderService mService;
@@ -228,6 +228,7 @@ public class XferActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityXferBinding.inflate(getLayoutInflater());
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        analyzer = new Analyzer(this);
 
         doInit();
         loadPrefs();
@@ -261,7 +262,7 @@ public class XferActivity extends AppCompatActivity {
 
     private void doInit() {
         isUploaded = false;
-        filesToUpload = analyzer.analyze(this, getIntent(), (e) -> Log.e(TAG, e));
+        filesToUpload = analyzer.analyze(getIntent(), e -> Log.e(TAG, e));
 
         // Grant URI permissions for all files
         for (CustomFile cf : filesToUpload) {

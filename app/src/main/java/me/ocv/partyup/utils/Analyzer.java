@@ -9,185 +9,169 @@ import android.util.Base64;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.util.Consumer;
 
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
 import me.ocv.partyup.objects.CustomFile;
 
 public final class Analyzer {
     private static final String TAG = "Analyzer";
+    private static final int BUFFER_SIZE = 128 * 1024; // 128 KB
 
-    private Context context;
-    private Consumer<String> onError;
+    private final Context context;
+
+    public Analyzer(@NonNull Context context) {
+        this.context = context.getApplicationContext();
+    }
 
     @NonNull
-    public CustomFile[] analyze(
-            Context context,
-            @NonNull Intent intent,
-            Consumer<String> onError
-    ) {
+    public CustomFile[] analyze(@NonNull Intent intent, @NonNull Consumer<String> onError) {
+        List<CustomFile> files = new ArrayList<>();
 
-        this.onError = onError;
-        this.context = context;
-        ArrayList<CustomFile> files = new ArrayList<>();
-        String the_msg = null;
-
-        String eType = intent.getType();
         String action = intent.getAction();
-        boolean one = Intent.ACTION_SEND.equals(action);
-        boolean many = Intent.ACTION_SEND_MULTIPLE.equals(action);
+        String eType = intent.getType();
+        boolean isSingleSend = Intent.ACTION_SEND.equals(action);
+        boolean isMultipleSend = Intent.ACTION_SEND_MULTIPLE.equals(action);
 
-        if (eType == null || (!one && !many)) {
-            this.onError.accept("cannot share content;\naction: " + action + "\ntype: " + eType);
-            return files.toArray(new CustomFile[0]);
+        if (eType == null || (!isSingleSend && !isMultipleSend)) {
+            onError.accept("Cannot share content; action: " + action + ", type: " + eType);
+            return new CustomFile[0];
         }
 
-        Uri[] handles = null;
+        List<Uri> handles = new ArrayList<>();
 
-        if (many) {
-            ArrayList<Uri> x = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
-            if (x != null) {
-                handles = x.toArray(new Uri[0]);
+        if (isMultipleSend) {
+            Collection<Uri> extraStreams = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            if (extraStreams != null) {
+                handles.addAll(extraStreams);
             }
         } else {
-            Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
-            if (uri != null) {
-                handles = new Uri[]{ uri };
+            Uri singleUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            if (singleUri != null) {
+                handles.add(singleUri);
             } else {
-                the_msg = intent.getStringExtra(Intent.EXTRA_TEXT);
+                String textMessage = intent.getStringExtra(Intent.EXTRA_TEXT);
+                if (textMessage != null) {
+                    CustomFile cf = new CustomFile();
+                    cf.content = textMessage;
+                    cf.mime = "text/plain";
+                    cf.size = (long) textMessage.length();
+                    files.add(cf);
+                    return files.toArray(new CustomFile[0]);
+                }
             }
         }
 
-        if (handles != null) {
-            // 'handles' non text files
-            for (Uri uri : handles) {
-                CustomFile cf = new CustomFile();
-                cf.handle = uri;
-                cf.mime = eType;
-                parseFile(cf);
+        if (handles.isEmpty()) {
+            onError.accept("Cannot decide on what to send for type: " + eType);
+            return new CustomFile[0];
+        }
 
-                if (cf.size == null) {
-                    continue;
-                }
+        for (Uri uri : handles) {
+            if (uri == null) {
+                continue;
+            }
 
+            CustomFile cf = new CustomFile();
+            cf.handle = uri;
+            cf.mime = eType;
+
+            parseFile(cf, onError);
+
+            if (cf.size != null) {
                 files.add(cf);
             }
-        } else if (the_msg != null) {
-            // only text files
-            CustomFile cf = new CustomFile();
-            cf.content = the_msg;
-            cf.mime = "text/plain";
-            cf.size = (long) the_msg.length();
-
-            files.add(cf);
-        } else {
-            this.onError.accept("Cannot decide on what to send for " + intent.getType());
         }
 
         return files.toArray(new CustomFile[0]);
     }
 
-    private void parseFile(CustomFile cf) {
-        // This fn doesn't parse files that is only text (aka share on selected text)
-        // mime is set above
-        cf.ext = getExt(cf.mime);
+    private void parseFile(@NonNull CustomFile cf, @NonNull Consumer<String> onError) {
+        cf.ext = getExtensionFromMime(cf.mime);
 
         if ("file".equals(cf.handle.getScheme())) {
             String path = cf.handle.getPath();
             cf.name = path != null ? path.substring(path.lastIndexOf('/') + 1) : "file";
         } else {
-            try (
-                    Cursor cur = this.context.getContentResolver()
-                            .query(
-                                    cf.handle, new String[]{
-                                            OpenableColumns.DISPLAY_NAME,
-                                            OpenableColumns.SIZE
-                                    }, null, null, null
-                            )
-            ) {
-
-                if (cur != null && cur.moveToFirst()) {
-                    int iName = cur.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    int iSize = cur.getColumnIndex(OpenableColumns.SIZE);
-
-                    if (iName != -1) {
-                        cf.name = cur.getString(iName);
-                    }
-                    if (iSize != -1) {
-                        cf.size = cur.getLong(iSize);
-                    }
-                }
-            } catch (Exception ex) {
-                Log.w(TAG, "Content Resolver: " + ex);
-            }
+            queryContentResolver(cf);
         }
 
         MessageDigest md = null;
-
         if (cf.name == null) {
             try {
-                md = MessageDigest.getInstance("SHA512");
+                md = MessageDigest.getInstance("SHA-512");
             } catch (Exception e) {
-                Log.e(TAG, "Unable to get MD Instance");
+                Log.e(TAG, "Unable to get MessageDigest instance", e);
             }
         }
 
-        // get correct file size
-        try (
-                InputStream ins = this.context.getContentResolver()
-                        .openInputStream(cf.handle)
-        ) {
-            assert ins != null;
-            byte[] buf = new byte[128 * 1024];
-            long sz = 0;
-            while (true) {
-                int n = ins.read(buf);
-                if (n <= 0) {
-                    break;
-                }
+        // Stream and read file data securely
+        try (InputStream ins = context.getContentResolver().openInputStream(cf.handle)) {
+            if (ins == null) {
+                onError.accept("Failed to open input stream for URI: " + cf.handle);
+                return;
+            }
 
-                sz += n;
-                if (md != null) {
-                    md.update(buf, 0, n);
+            byte[] buf = new byte[BUFFER_SIZE];
+            long totalBytes = 0;
+            int n;
+
+            while ((n = ins.read(buf)) != -1) {
+                if (n > 0) {
+                    totalBytes += n;
+                    if (md != null) {
+                        md.update(buf, 0, n);
+                    }
                 }
             }
-            cf.size = sz;
+            cf.size = totalBytes;
         } catch (Exception ex) {
-            this.onError.accept("StoragePermissionNeeded");
-            String exMsg = "Error3: " + ex;
-            this.onError.accept("StoragePermissionNeeded: " + exMsg);
+            Log.w(TAG, "Storage access error or permission missing: " + ex);
+            onError.accept("StoragePermissionNeeded: " + ex.getMessage());
             return;
         }
 
         if (md != null) {
-            String cSum = Base64.encodeToString(
-                            md.digest(),
-                            Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP
-                    )
-                    .substring(0, 15);
-            cf.name = String.format("mystery-file-%s.%s", cSum, cf.ext);
+            String checksum = Base64.encodeToString(md.digest(), Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP).substring(0, 15);
+            cf.name = String.format(Locale.getDefault(), "mystery-file-%s.%s", checksum, cf.ext);
         }
 
-        cf.desc = String.format(
-                Locale.getDefault(),
-                "%s\n\nsize: %,d byte\ntype: %s",
-                cf.name,
-                cf.size,
-                cf.mime
+        cf.desc = String.format(Locale.getDefault(), "%s\n\nsize: %,d bytes\ntype: %s", cf.name, cf.size, cf.mime
         );
     }
 
-    private String getExt(String mime) {
+    private void queryContentResolver(@NonNull CustomFile cf) {
+        try (Cursor cursor = context.getContentResolver().query(cf.handle, new String[]{OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int iName = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                int iSize = cursor.getColumnIndex(OpenableColumns.SIZE);
+
+                if (iName != -1) {
+                    cf.name = cursor.getString(iName);
+                }
+                if (iSize != -1) {
+                    cf.size = cursor.getLong(iSize);
+                }
+            }
+        } catch (Exception ex) {
+            Log.w(TAG, "ContentResolver query failed: " + ex);
+        }
+    }
+
+    @NonNull
+    private String getExtensionFromMime(@Nullable String mime) {
         if (mime == null) {
             return "bin";
         }
 
-        mime = mime.replace(';', ' ')
-                .split(" ")[0];
+        mime = mime.replace(';', ' ').split(" ")[0].trim().toLowerCase(Locale.ROOT);
 
         switch (mime) {
             case "audio/ogg":
@@ -198,6 +182,8 @@ public final class Analyzer {
                 return "m4a";
             case "image/jpeg":
                 return "jpg";
+            case "application/pdf":
+                return "pdf";
         }
 
         if (mime.startsWith("text/")) {
@@ -205,13 +191,12 @@ public final class Analyzer {
         }
 
         if (mime.contains("/")) {
-            mime = mime.split("/")[1];
-            if (mime.matches("^[a-zA-Z0-9]{1,8}$")) {
-                return mime;
+            String subType = mime.split("/")[1];
+            if (subType.matches("^[a-zA-Z0-9]{1,8}$")) {
+                return subType;
             }
         }
 
         return "bin";
     }
-
 }
