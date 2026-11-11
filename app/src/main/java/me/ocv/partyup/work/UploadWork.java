@@ -1,6 +1,7 @@
 package me.ocv.partyup.work;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.work.Worker;
@@ -11,38 +12,48 @@ import org.jetbrains.annotations.Contract;
 import java.util.function.Consumer;
 
 import me.ocv.partyup.models.UploadStatus;
-import me.ocv.partyup.room.repo.UploadStatusRepository;
+import me.ocv.partyup.models.pojo.UploadWithInfo;
+import me.ocv.partyup.room.repo.UploadRepository;
 
 public final class UploadWork extends Worker {
     public static final String STATUS_ID = "status_id";
+    public static final String INFO_ID = "info_id";
 
     public UploadWork(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
-        statusRepository = UploadStatusRepository.getInstance();
+        statusRepository = UploadRepository.getInstance();
         setProgressAsync(WorkUtility.progressData(null));
     }
 
-    private final UploadStatusRepository statusRepository;
+    private final UploadRepository statusRepository;
     private Selected selected;
 
     private void init() {
-        long id = getInputData().getLong(STATUS_ID, -1);
-        if (id == -1) {
-            throw new IllegalArgumentException("UploadWork input missing the `status_id`");
+        long statusId = getInputData().getLong(STATUS_ID, -1);
+        long infoId = getInputData().getLong(INFO_ID, -1);
+
+        if (statusId == -1 && infoId == -1) {
+            throw new IllegalArgumentException("UploadWork input missing both `status_id` and `info_id`");
+        } else if (statusId == -1) {
+            statusId = statusRepository.infoOf(infoId).statusId;
         }
 
-        UploadStatus uploadStatus = statusRepository.statusOf(id);
-        selected = Selected.select(statusRepository, uploadStatus, this::updateProgress);
+        UploadWithInfo upload = statusRepository.uploadOf(statusId);
+        selected = Selected.select(statusRepository, upload, this::updateProgress);
 
-        if (uploadStatus == null || uploadStatus.total == 0 || uploadStatus.total < uploadStatus.done) {
+        if (upload.status == null || upload.status.total == 0 || upload.status.total < upload.status.done) {
             throw new IllegalStateException("UploadWork need proper status");
         }
 
-        if (uploadStatus.status != UploadStatus.Status.ENQUEUED) {
+        if (upload.status.status != UploadStatus.Status.ENQUEUED) {
             throw new IllegalStateException("UploadWork needs to be in proper state");
         }
 
-        updateProgress(uploadStatus);
+        if (upload.info.handle.isEmpty()) {
+            throw new IllegalStateException("UploadWork needs to be in proper state, file handle must not be empty");
+        }
+
+        updateProgress(upload);
     }
 
     @NonNull
@@ -51,6 +62,7 @@ public final class UploadWork extends Worker {
         try {
             init();
             selected.start();
+            Log.d("WORKER", String.format("Upload: %s", selected.repository.peek()));
 
             while (!selected.completed()) {
                 if (isStopped()) {
@@ -81,10 +93,10 @@ public final class UploadWork extends Worker {
     }
 
     private static final class Selected {
-        private final UploadStatusRepository.FocusedRepository repository;
-        private final Consumer<UploadStatus> hook;
+        private final UploadRepository.FocusedRepository repository;
+        private final Consumer<UploadWithInfo> hook;
 
-        private Selected(UploadStatusRepository.FocusedRepository repository, Consumer<UploadStatus> hook) {
+        private Selected(UploadRepository.FocusedRepository repository, Consumer<UploadWithInfo> hook) {
             this.repository = repository;
             this.hook = hook;
         }
@@ -117,13 +129,12 @@ public final class UploadWork extends Worker {
 
         @NonNull
         @Contract(value = "_, _, _ -> new")
-        private static Selected select(@NonNull UploadStatusRepository repository, UploadStatus uploadStatus, Consumer<UploadStatus> postTransactionHook) {
-            return new Selected(repository.focusOn(uploadStatus), postTransactionHook);
+        private static Selected select(@NonNull UploadRepository repository, UploadWithInfo upload, Consumer<UploadWithInfo> postTransactionHook) {
+            return new Selected(repository.focusOn(upload), postTransactionHook);
         }
     }
 
-
-    private void updateProgress(UploadStatus status) {
-        setProgressAsync(WorkUtility.progressData(status));
+    private void updateProgress(UploadWithInfo upload) {
+        setProgressAsync(WorkUtility.progressData(upload.status));
     }
 }

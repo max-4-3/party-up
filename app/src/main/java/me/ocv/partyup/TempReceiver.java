@@ -44,7 +44,7 @@ public class TempReceiver extends AppCompatActivity {
             }
 
             executor.execute(() -> {
-                String msg = String.format(Locale.getDefault(), "Enqueued '%s'(%d): %s", file.name, file.size, workManager.enqueue(WorkUtility.enqueueWork(file.name, file.size).request));
+                String msg = String.format(Locale.getDefault(), "Enqueued '%s'(%d): %s", file.name, file.size, workManager.enqueue(WorkUtility.enqueueWork(file).request));
 
                 Log.d(TAG, msg);
                 runOnUiThread(() -> ToastUtils.show(this, msg));

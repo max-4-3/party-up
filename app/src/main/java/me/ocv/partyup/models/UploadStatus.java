@@ -42,16 +42,11 @@ public final class UploadStatus implements Parcelable {
     public Status status;
 
     @ColumnInfo(name = "worker_id")
-    public String workerId;
+    public String workerId = "";
 
     @Ignore
     public float getPercentage() {
         return total > 0 ? ((float) done / total) * PERCENT_MUL : 0;
-    }
-
-    @Ignore
-    public UploadStatus snapshot() {
-        return new UploadStatus(id, title, done, total, startedWhen, statusText, status, workerId);
     }
 
     public UploadStatus(long id, String title, long done, long total, long startedWhen, String statusText, Status status, String workerId) {

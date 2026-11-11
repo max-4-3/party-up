@@ -63,7 +63,7 @@ public final class UploadStatusView extends LinearLayout {
     }
 
     /**
-     * Public method to set or update the UploadStatus view.
+     * Public method to set or updateStatus the UploadStatus view.
      * Pass null to reset the view.
      *
      * @param uploadStatus instance of UploadStatus

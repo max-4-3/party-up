@@ -2,7 +2,7 @@ package me.ocv.partyup;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -24,7 +24,8 @@ import java.util.concurrent.Executors;
 
 import me.ocv.partyup.databinding.ActivityUploadInfoBinding;
 import me.ocv.partyup.models.UploadStatus;
-import me.ocv.partyup.room.repo.UploadStatusRepository;
+import me.ocv.partyup.objects.CustomFile;
+import me.ocv.partyup.room.repo.UploadRepository;
 import me.ocv.partyup.utils.ToastUtils;
 import me.ocv.partyup.views.UploadStatusView;
 import me.ocv.partyup.work.WorkUtility;
@@ -108,7 +109,7 @@ public class UploadInfoActivity extends AppCompatActivity {
 
     private final Set<Long> observedStatusIds = new HashSet<>();
 
-    private final UploadStatusRepository repository = UploadStatusRepository.getInstance();
+    private final UploadRepository repository = UploadRepository.getInstance();
 
     public static void start(Context context, UploadStatus uploadStatus) {
         Intent intent = new Intent(context, UploadInfoActivity.class);
@@ -149,16 +150,11 @@ public class UploadInfoActivity extends AppCompatActivity {
         });
 
         loadExistingUploads();
-
-        UploadStatus initial = getUploadStatusFromIntent();
-        if (initial != null) {
-            observeStatus(initial.id);
-        }
     }
 
     private void loadExistingUploads() {
         executor.execute(() -> {
-            List<UploadStatus> statuses = repository.all();
+            List<UploadStatus> statuses = repository.allStatus();
 
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) {
@@ -179,7 +175,12 @@ public class UploadInfoActivity extends AppCompatActivity {
 
     private void enqueueWork(String title, long total) {
         executor.execute(() -> {
-            WorkUtility.UploadRequest request = WorkUtility.enqueueWork(title, total);
+            CustomFile file = new CustomFile();
+            file.name = title;
+            file.size = total;
+            file.handle = Uri.EMPTY;
+
+            WorkUtility.UploadRequest request = WorkUtility.enqueueWork(file);
 
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) {
@@ -236,27 +237,12 @@ public class UploadInfoActivity extends AppCompatActivity {
             // Third callback
             __i -> executor.execute(() -> {
                 if (__i.id >= 0) {
-                    UploadStatusRepository.getInstance().remove(__i);
+                    UploadRepository.getInstance().remove(__i);
                     if (!TextUtils.isEmpty(__i.workerId)) {
                         manager.cancelWorkById(UUID.fromString(__i.workerId));
                     }
                 }
             }));
-    }
-
-    @Nullable
-    private UploadStatus getUploadStatusFromIntent() {
-        Intent intent = getIntent();
-
-        if (intent == null) {
-            return null;
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return intent.getParcelableExtra(EXTRA_UPLOAD_STATUS, UploadStatus.class);
-        }
-
-        return intent.getParcelableExtra(EXTRA_UPLOAD_STATUS);
     }
 
     @Override
