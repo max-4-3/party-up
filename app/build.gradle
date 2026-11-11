@@ -71,5 +71,7 @@ dependencies {
     implementation libs.material
     implementation libs.preference
     implementation libs.zixing.core
+
     implementation libs.work.runtime
+    implementation libs.room3.runtime
 }

@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.preference.PreferenceManager;
 
 import me.ocv.partyup.objects.PrefsKey;
+import me.ocv.partyup.room.database.AppDatabase;
 import me.ocv.partyup.utils.SoundUtils;
 
 public class PartyUP extends Application {
@@ -19,6 +20,6 @@ public class PartyUP extends Application {
                 : AppCompatDelegate.MODE_NIGHT_NO);
         SoundUtils.init(this);
         SoundUtils.toggleShut(preferences.getBoolean(PrefsKey.SHUT_UP, true));
+        AppDatabase.init(this);
     }
-
 }

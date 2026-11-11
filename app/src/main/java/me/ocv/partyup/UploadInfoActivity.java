@@ -28,8 +28,7 @@ public class UploadInfoActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        final UploadStatus status = new UploadStatus(1, "unpleasent_experience.zip", 20, 40, 1,
-                System.currentTimeMillis(), "Hello, World!");
+        final UploadStatus status = UploadStatus.sample();
 
         binding = ActivityUploadInfoBinding.inflate(getLayoutInflater());
 

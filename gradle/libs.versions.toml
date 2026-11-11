@@ -1,4 +1,5 @@
 [versions]
+room3-runtime = "3.0.3"
 work-runtime = "2.12.0"
 zixing-core = "3.5.4"
 #noinspection AndroidGradlePluginVersion
@@ -9,6 +10,7 @@ material = "1.14.0"
 [libraries]
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 preference = { module = "androidx.preference:preference", version.ref = "preference" }
+room3-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room3-runtime" }
 work-runtime = { module = "androidx.work:work-runtime", version.ref = "work-runtime" }
 zixing-core = { module = "com.google.zxing:core", version.ref = "zixing-core" }
 

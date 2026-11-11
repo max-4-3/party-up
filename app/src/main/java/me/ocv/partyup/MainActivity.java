@@ -106,9 +106,7 @@ public class MainActivity extends AppCompatActivity {
         binding.errBtn.setOnClickListener(v -> SoundUtils.playError());
         binding.successBtn.setOnClickListener(v -> SoundUtils.playSuccess());
         binding.bgBtn.setOnClickListener(v -> SoundUtils.playBackGround());
-        binding.testBtn.setOnClickListener(v -> UploadInfoActivity.start(MainActivity.this, new UploadStatus(
-                1, "free_robux.exe", 40, 200, 20, System.currentTimeMillis(), ""
-        )));
+        binding.testBtn.setOnClickListener(v -> UploadInfoActivity.start(MainActivity.this, UploadStatus.sample()));
     }
 
 }

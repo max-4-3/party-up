@@ -4,61 +4,89 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+import androidx.room3.ColumnInfo;
+import androidx.room3.Entity;
+import androidx.room3.Ignore;
+import androidx.room3.PrimaryKey;
 
 import org.jetbrains.annotations.Contract;
 
+@Entity(tableName = "upload_status")
 public final class UploadStatus implements Parcelable {
-    public static final Creator<UploadStatus> CREATOR = new Creator<>() {
-        @NonNull
-        @Contract("_ -> new")
+    private static final float PERCENT_MUL = 100F;
+
+    public enum Status {
+        ENQUEUED, RUNNING, COMPLETED, FAILED
+    }
+
+    @PrimaryKey(autoGenerate = true)
+    public long id = 0;
+
+    @ColumnInfo(name = "title")
+    public String title = "unnamed_file";
+
+    @ColumnInfo(name = "done")
+    public long done = 0L;
+
+    @ColumnInfo(name = "total")
+    public long total = 0L;
+
+    @ColumnInfo(name = "started_when")
+    public long startedWhen = 0;
+
+    @ColumnInfo(name = "status_text")
+    public String statusText = "Idle...";
+
+    @ColumnInfo(name = "status")
+    public Status status;
+
+    @Ignore
+    public float getPercentage() {
+        return total > 0 ? ((float) done / total) * PERCENT_MUL : 0;
+    }
+
+    @Ignore
+    public double getElapsedMillis() {
+        return startedWhen > 0 ? System.currentTimeMillis() - startedWhen : 0;
+    }
+
+    public UploadStatus(long id, String title, long done, long total, long startedWhen, String statusText, Status status) {
+        this.id = id;
+        this.title = title;
+        this.done = done;
+        this.total = total;
+        this.startedWhen = startedWhen;
+        this.statusText = statusText;
+        this.status = status;
+    }
+
+    @NonNull
+    @Contract(" -> new")
+    public static UploadStatus sample() {
+        return new UploadStatus(1, "Zuper_file.zip", 12, 200, System.currentTimeMillis(), "Uploading...", Status.RUNNING);
+    }
+
+    // Parable implementations
+    private UploadStatus(@NonNull Parcel in) {
+        id = in.readLong();
+        title = in.readString();
+        done = in.readLong();
+        total = in.readLong();
+        startedWhen = in.readLong();
+        statusText = in.readString();
+    }
+
+    public static final Creator<UploadStatus> CREATOR = new Creator<UploadStatus>() {
         @Override
         public UploadStatus createFromParcel(Parcel in) {
             return new UploadStatus(in);
         }
 
-        @NonNull
-        @Contract(value = "_ -> new", pure = true)
         @Override
         public UploadStatus[] newArray(int size) {
             return new UploadStatus[size];
         }
     };
-    private static final float PERCENT_MUL = 100F;
-    public int id = 0;
-    public String title = "unnamed_file";
-    public int files = 1;
-    public long done = 0L;
-    public long total = 0L;
-    public long startedWhen = System.currentTimeMillis();
-    public String statusText = "Idle...";
-
-    public UploadStatus(int id, String title, long done, long total, int files, long startedWhen, String statusText) {
-        this.id = id;
-        this.title = title;
-        this.done = done;
-        this.total = total;
-        this.files = files;
-        this.startedWhen = startedWhen;
-        this.statusText = statusText;
-    }
-
-    private UploadStatus(@NonNull Parcel in) {
-        id = in.readInt();
-        title = in.readString();
-        done = in.readLong();
-        total = in.readLong();
-        files = in.readInt();
-        startedWhen = in.readLong();
-        statusText = in.readString();
-    }
-
-    public float getPercentage() {
-        return total > 0 ? ((float) done / total) * PERCENT_MUL : 0;
-    }
-
-    public double getElapsedMillis() {
-        return startedWhen > 0 ? System.currentTimeMillis() - startedWhen : 0;
-    }
 
     @Override
     public int describeContents() {
@@ -67,11 +95,10 @@ public final class UploadStatus implements Parcelable {
 
     @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
-        dest.writeInt(id);
+        dest.writeLong(id);
         dest.writeString(title);
         dest.writeLong(done);
         dest.writeLong(total);
-        dest.writeInt(files);
         dest.writeLong(startedWhen);
         dest.writeString(statusText);
     }
