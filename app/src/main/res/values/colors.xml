@@ -8,4 +8,12 @@
     <color name="teal_700">#FF512DA8</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Teal Palette -->
+    <color name="teal_completed">#00796B</color>     <!-- Deep Teal -->
+    <color name="teal_running">#00BCD4</color>       <!-- Bright Cyan/Teal -->
+    <color name="teal_enqueued">#B2DFDB</color>      <!-- Light Soft Teal -->
+
+    <!-- Accent for Errors (Complements Teal) -->
+    <color name="orange_failed">#E64A19</color>      <!-- Burnt Orange / Rust -->
 </resources>
