@@ -9,8 +9,6 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
-import org.jetbrains.annotations.Contract;
-
 @Entity(tableName = "upload_status")
 public final class UploadStatus implements Parcelable {
     private static final float PERCENT_MUL = 100F;
@@ -49,6 +47,31 @@ public final class UploadStatus implements Parcelable {
         return total > 0 ? ((float) done / total) * PERCENT_MUL : 0;
     }
 
+    @Ignore
+    public boolean isCompleted() {
+        return isFinished() || (total >= 0 && done >= total);
+    }
+
+    @Ignore
+    public boolean isOnGoing() {
+        return isStatus(Status.RUNNING);
+    }
+
+    @Ignore
+    public boolean isFinished() {
+        return isStatus(Status.FAILED) || isStatus(Status.COMPLETED);
+    }
+
+    @Ignore
+    public boolean isErrored() {
+        return isStatus(Status.FAILED) || total <= 0;
+    }
+
+    @Ignore
+    private boolean isStatus(Status expected) {
+        return status == expected;
+    }
+
     public UploadStatus(long id, String title, long done, long total, long startedWhen, String statusText, Status status, String workerId) {
         this.id = id;
         this.title = title;
@@ -58,12 +81,6 @@ public final class UploadStatus implements Parcelable {
         this.statusText = statusText;
         this.status = status;
         this.workerId = workerId;
-    }
-
-    @NonNull
-    @Contract(" -> new")
-    public static UploadStatus sample() {
-        return new UploadStatus(1, "Zuper_file.zip", 12, 200, System.currentTimeMillis(), "Uploading...", Status.RUNNING, "");
     }
 
     // Parable implementations

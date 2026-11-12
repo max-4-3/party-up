@@ -20,7 +20,7 @@ public final class NumberUtils {
         long result = 0;
         if (files != null) {
             for (CustomFile file : files) {
-                if (file.size == null) {
+                if (file.size == 0) {
                     continue;
                 }
                 result += file.size;

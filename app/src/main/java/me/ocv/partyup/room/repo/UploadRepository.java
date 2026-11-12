@@ -7,7 +7,6 @@ import androidx.lifecycle.LiveData;
 
 import org.jetbrains.annotations.Contract;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,11 +24,8 @@ public final class UploadRepository {
     private final Map<Long, Long> lastUpdateTime = new ConcurrentHashMap<>();
     private final UploadDao uploadDao;
 
-    public UploadStatus statusOf(long id) {
-        UploadStatus status = uploadDao.getStatusById(id);
-        Log.d(TAG, String.format("status of '%d': %s", id, status));
-
-        return status;
+    public LiveData<List<UploadStatus>> liveStatus() {
+        return uploadDao.getLiveStatusAll();
     }
 
     public UploadInfo infoOf(long id) {
@@ -54,43 +50,9 @@ public final class UploadRepository {
         return status;
     }
 
-    @NonNull
-    public UploadStatus createStatus(String title, long total) {
-        UploadStatus uploadStatus = new UploadStatus(0, title, 0, total, 0, "Work Created", UploadStatus.Status.ENQUEUED, "");
-        Log.d(TAG, String.format("status before add: %s", uploadStatus));
-        long _id = add(uploadStatus);
-        Log.d(TAG, String.format("id received from add: %s", _id));
-
-        uploadStatus.id = _id;
-        Log.d(TAG, String.format("status after add: %s", uploadStatus));
-
-        return uploadStatus;
-    }
-
-    @NonNull
-    public List<UploadStatus> allStatus() {
-        List<UploadStatus> status = uploadDao.getStatusAll();
-        if (status == null) {
-            status = new ArrayList<>();
-        }
-
-        Log.d(TAG, String.format("total status: %d", status.size()));
-
-        return status;
-    }
-
-    public long remove(UploadStatus status) {
+    public void remove(UploadStatus status) {
         uploadDao.removeStatus(status);
         Log.d(TAG, String.format("[%s] removing status: %s", status.id, status));
-
-        return status.id;
-    }
-
-    public long add(UploadStatus status) {
-        uploadDao.insertStatus(status);
-        Log.d(TAG, String.format("[%s] inserting status: %s", status.id, status));
-
-        return status.id;
     }
 
     public void addAndJoin(UploadStatus status, UploadInfo info) {

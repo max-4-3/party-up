@@ -1,4 +1,4 @@
-package me.ocv.partyup.service;
+package me.ocv.partyup.utils;
 
 import android.content.Context;
 import android.net.Uri;
@@ -20,11 +20,15 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import me.ocv.partyup.objects.BaseUploadProgress;
 import me.ocv.partyup.objects.CustomFile;
-import me.ocv.partyup.utils.NetworkUtils;
 
-public class Uploader {
+public final class Uploader {
+    public static final class BaseUploadProgress {
+        public long done = 0;
+        public long total = 0;
+        public long delta = 0;
+    }
+
     private static final String TAG = "Uploader";
     private final String serverUrl;
     private final String password;
@@ -77,7 +81,7 @@ public class Uploader {
             @NonNull CustomFile cf,
             HttpURLConnection conn
     ) throws Exception {
-        if (cf.size == null || cf.size == 0 || cf.handle == null) {
+        if (!cf.isReadable()) {
             Log.e(TAG, String.format("Bad media file: %s", cf));
             conn.disconnect();
             return false;

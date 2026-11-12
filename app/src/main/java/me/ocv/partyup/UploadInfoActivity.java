@@ -1,26 +1,28 @@
 package me.ocv.partyup;
 
-import android.content.Context;
-import android.content.Intent;
+import android.annotation.SuppressLint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.work.WorkManager;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Predicate;
 
 import me.ocv.partyup.databinding.ActivityUploadInfoBinding;
 import me.ocv.partyup.models.UploadStatus;
@@ -30,147 +32,198 @@ import me.ocv.partyup.utils.ToastUtils;
 import me.ocv.partyup.views.UploadStatusView;
 import me.ocv.partyup.work.WorkUtility;
 
-public class UploadInfoActivity extends AppCompatActivity {
-    public static final String EXTRA_UPLOAD_STATUS = "upload_status";
+public final class UploadInfoActivity extends AppCompatActivity {
+    public static final class UploadStatusAdapter extends RecyclerView.Adapter<UploadStatusAdapter.ViewHolder> {
+        public static final class ViewHolder extends RecyclerView.ViewHolder {
+            final UploadStatusView view;
 
-    public static final class UploadStatusAdapter extends BaseAdapter {
+            public ViewHolder(@NonNull UploadStatusView itemView) {
+                super(itemView);
+                this.view = itemView;
+            }
+        }
 
         public interface Binder {
             void bind(UploadStatusView view, UploadStatus status);
         }
 
-        private final Context context;
         private final Binder binder;
         private final List<UploadStatus> statuses = new ArrayList<>();
 
-        public UploadStatusAdapter(Context context, Binder binder) {
-            this.context = context;
+        public UploadStatusAdapter(Binder binder) {
             this.binder = binder;
+            setHasStableIds(true);
         }
 
         public void addOrUpdate(UploadStatus status) {
             for (int i = 0; i < statuses.size(); i++) {
                 if (statuses.get(i).id == status.id) {
                     statuses.set(i, status);
-                    notifyDataSetChanged();
+                    notifyItemChanged(i);
                     return;
                 }
             }
 
+            int position = statuses.size();
             statuses.add(status);
+            notifyItemInserted(position);
+        }
+
+        public void remove(long statusId) {
+            for (int i = 0; i < statuses.size(); ++i) {
+                if (statuses.get(i).id == statusId) {
+                    statuses.remove(i);
+                    notifyItemRemoved(i);
+                    return;
+                }
+            }
+        }
+
+        @SuppressLint("NotifyDataSetChanged")
+        public void replaceAll(List<UploadStatus> newStatues) {
+            statuses.clear();
+            statuses.addAll(newStatues);
             notifyDataSetChanged();
         }
 
-        public void remove(long id) {
-            statuses.removeIf(status -> status.id == id);
-            notifyDataSetChanged();
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            UploadStatusView view = new UploadStatusView(parent.getContext());
+
+            view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            return new ViewHolder(view);
         }
 
         @Override
-        public int getCount() {
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            binder.bind(holder.view, statuses.get(position));
+        }
+
+        @Override
+        public int getItemCount() {
             return statuses.size();
-        }
-
-        @Override
-        public UploadStatus getItem(int position) {
-            return statuses.get(position);
         }
 
         @Override
         public long getItemId(int position) {
             return statuses.get(position).id;
         }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            UploadStatusView view;
-
-            if (convertView instanceof UploadStatusView) {
-                view = (UploadStatusView) convertView;
-            } else {
-                view = new UploadStatusView(context);
-            }
-
-            binder.bind(view, getItem(position));
-            return view;
-        }
-
-        @Override
-        public boolean hasStableIds() {
-            return true;
-        }
     }
-
 
     private ActivityUploadInfoBinding binding;
     private UploadStatusAdapter adapter;
+    private WorkManager manager;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-
-    private final Set<Long> observedStatusIds = new HashSet<>();
-
     private final UploadRepository repository = UploadRepository.getInstance();
 
-    public static void start(Context context, UploadStatus uploadStatus) {
-        Intent intent = new Intent(context, UploadInfoActivity.class);
-        intent.putExtra(EXTRA_UPLOAD_STATUS, uploadStatus);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(intent);
-    }
+    private final Set<Long> observedStatusIds = new HashSet<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         binding = ActivityUploadInfoBinding.inflate(getLayoutInflater());
+        manager = WorkManager.getInstance(UploadInfoActivity.this);
         setContentView(binding.getRoot());
 
-        adapter = new UploadStatusAdapter(this, this::bindStatusView);
+        adapter = new UploadStatusAdapter(this::bindStatusView);
+        binding.uploadLists.setLayoutManager(new LinearLayoutManager(this));
         binding.uploadLists.setAdapter(adapter);
 
-        binding.inputDone.setOnClickListener(v -> {
-            String title = binding.inputTitle.getText().toString().trim();
-            String totalText = binding.inputTotal.getText().toString();
+        repository.liveStatus().observe(this, new Observer<>() {
+            private List<UploadStatus> mStatuses;
 
-            if (TextUtils.isEmpty(title) || TextUtils.isEmpty(totalText) || !TextUtils.isDigitsOnly(totalText)) {
-                return;
-            }
+            @Override
+            public void onChanged(List<UploadStatus> statuses) {
+                if (statuses == null) {
+                    return;
+                } else {
+                    setStatuses(statuses);
+                }
 
-            try {
-                long total = Long.parseLong(totalText);
+                adapter.replaceAll(mStatuses);
 
-                enqueueWork(title, total);
+                int r = count(s -> s.status == UploadStatus.Status.RUNNING);
+                int f = count(s -> s.status == UploadStatus.Status.FAILED);
+                int c = count(s -> s.status == UploadStatus.Status.COMPLETED);
+                int t = mStatuses.size();
 
-                binding.inputTitle.setText("");
-                binding.inputTotal.setText("");
-
-            } catch (NumberFormatException exception) {
-                ToastUtils.show(this, "Invalid total (not a valid long)");
-            }
-        });
-
-        loadExistingUploads();
-    }
-
-    private void loadExistingUploads() {
-        executor.execute(() -> {
-            List<UploadStatus> statuses = repository.allStatus();
-
-            runOnUiThread(() -> {
-                if (isFinishing() || isDestroyed()) {
+                if (t != (r + f + c)) {
                     return;
                 }
 
-                for (UploadStatus status : statuses) {
-                    if (status.status == UploadStatus.Status.COMPLETED || status.status == UploadStatus.Status.FAILED || status.done >= status.total) {
-                        continue;
-                    }
+                binding.uploadStats.post(() -> {
+                    binding.uploadsCompleted.setText(String.valueOf(c));
+                    binding.uploadsFailed.setText(String.valueOf(f));
+                    binding.uploadsRunning.setText(String.valueOf(r));
+                    binding.uploadsTotal.setText(String.valueOf(r + f + c));
+                });
+            }
 
-                    adapter.addOrUpdate(status);
-                    observeStatus(status.id);
+            private void setStatuses(List<UploadStatus> statuses) {
+                mStatuses = new ArrayList<>(statuses);
+                mStatuses.sort(Comparator.comparingLong((UploadStatus s) -> s.startedWhen).reversed());
+            }
+
+            private int count(Predicate<UploadStatus> predicate) {
+                int result = 0;
+
+                if (mStatuses != null) {
+                    for (UploadStatus status : mStatuses) {
+                        if (predicate.test(status)) {
+                            result++;
+                        }
+                    }
                 }
-            });
+
+                return result;
+            }
         });
+
+    }
+
+    private void observeStatus(long statusId) {
+        if (!observedStatusIds.add(statusId)) {
+            return;
+        }
+
+        repository.liveStatusOf(statusId).observe(this, status -> {
+            if (status != null) {
+                adapter.addOrUpdate(status);
+            }
+        });
+    }
+
+    private void bindStatusView(@NonNull UploadStatusView view, UploadStatus status) {
+        view.setUploadStatus(status,
+            // First callback
+            _i -> executor.execute(() -> {
+                if (!TextUtils.isEmpty(status.workerId)) {
+                    manager.cancelWorkById(UUID.fromString(status.workerId));
+                }
+            }),
+
+            // Second callback
+            __i -> ToastUtils.show(UploadInfoActivity.this, "PAUSE"),
+
+            // Third callback
+            __i -> executor.execute(() -> {
+                if (__i.id >= 0) {
+                    UploadRepository.getInstance().remove(__i);
+                    if (!TextUtils.isEmpty(__i.workerId)) {
+                        manager.cancelWorkById(UUID.fromString(__i.workerId));
+                    }
+                }
+            }));
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executor.shutdown();
     }
 
     private void enqueueWork(String title, long total) {
@@ -204,50 +257,5 @@ public class UploadInfoActivity extends AppCompatActivity {
                 });
             });
         });
-    }
-
-    private void observeStatus(long id) {
-        // Prevent registering duplicate observers for the same upload.
-        if (!observedStatusIds.add(id)) {
-            return;
-        }
-
-        repository.liveStatusOf(id).observe(this, status -> {
-            if (status != null) {
-                adapter.addOrUpdate(status);
-            }
-        });
-    }
-
-    private void bindStatusView(@NonNull UploadStatusView view, UploadStatus status) {
-        WorkManager manager = WorkManager.getInstance(UploadInfoActivity.this);
-
-        view.setUploadStatus(status,
-
-            // First callback
-            _i -> executor.execute(() -> {
-                if (!TextUtils.isEmpty(status.workerId)) {
-                    manager.cancelWorkById(UUID.fromString(status.workerId));
-                }
-            }),
-
-            // Second callback
-            __i -> ToastUtils.show(UploadInfoActivity.this, "PAUSE"),
-
-            // Third callback
-            __i -> executor.execute(() -> {
-                if (__i.id >= 0) {
-                    UploadRepository.getInstance().remove(__i);
-                    if (!TextUtils.isEmpty(__i.workerId)) {
-                        manager.cancelWorkById(UUID.fromString(__i.workerId));
-                    }
-                }
-            }));
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        executor.shutdown();
     }
 }

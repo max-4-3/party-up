@@ -21,8 +21,8 @@ import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.models.pojo.UploadWithInfo;
 import me.ocv.partyup.objects.PrefsKey;
 import me.ocv.partyup.room.repo.UploadRepository;
-import me.ocv.partyup.service.Uploader;
 import me.ocv.partyup.utils.FileCacheUtility;
+import me.ocv.partyup.utils.Uploader;
 
 public final class UploadWork extends Worker {
     public static final String STATUS_ID = "status_id";
@@ -58,8 +58,9 @@ public final class UploadWork extends Worker {
             throw new IllegalStateException("UploadWork needs to be in proper state");
         }
 
-        if (upload.info.handle.isEmpty()) {
-            throw new IllegalStateException("UploadWork needs to be in proper state, file handle must not be empty");
+        boolean isTextFile = upload.info.contentType.startsWith("text") && !upload.info.textContent.isEmpty();
+        if (!isTextFile && upload.info.handle.isEmpty()) {
+            throw new IllegalStateException("UploadWork needs to be in proper state, file handle must not be empty for a non text file");
         }
 
         updateProgress(upload);

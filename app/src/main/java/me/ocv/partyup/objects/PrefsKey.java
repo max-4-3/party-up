@@ -15,5 +15,4 @@ public final class PrefsKey {
 
     private PrefsKey() {
     }
-
 }

@@ -1,95 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="4dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <Button
-        android:id="@+id/testBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginRight="20dp"
-        android:text="Show status" />
-
-    <Button
-        android:id="@+id/settingsBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginRight="20dp"
-        android:text="@string/open_settings" />
-
-    <Button
-        android:id="@+id/stopServBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="20dp"
-        android:enabled="false"
-        android:text="@string/stop_service" />
-
     <LinearLayout
-        style="?android:attr/buttonBarStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="2dp">
 
-        <Button
-            android:id="@+id/successBtn"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="20dp"
-            android:layout_marginTop="20dp"
-            android:paddingHorizontal="20dp"
-            android:layout_marginRight="20dp"
-            android:text="Success" />
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/errBtn"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="20dp"
-            android:layout_marginTop="20dp"
-            android:paddingHorizontal="20dp"
-            android:layout_marginRight="20dp"
-            android:text="Error" />
+            <Button
+                android:id="@+id/settingsBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/open_settings" />
 
-        <Button
-            android:id="@+id/bgBtn"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="wrap_content"
+            <Space
+                android:layout_width="6dp"
+                android:layout_height="match_parent" />
+
+            <Button
+                android:id="@+id/uploadsBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/show_uploads_btn" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="20dp"
-            android:layout_marginTop="20dp"
-            android:paddingHorizontal="20dp"
-            android:layout_marginBottom="20dp"
-            android:layout_marginRight="20dp"
-            android:text="Background" />
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/uploadFileBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/upload_file_btn" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="8dp" />
 
     <TextView
-        android:id="@+id/textView4"
+        android:id="@+id/mainText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="2dp"
         android:text="@string/textview_placeholder" />
 
-    <ImageView
-        android:id="@+id/imageView"
+    <Space
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="20dp"
+        android:layout_height="8dp" />
+
+    <ImageView
+        android:id="@+id/mainImage"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="2dp"
         android:contentDescription="@string/banner_description"
         app:srcCompat="@drawable/banner" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="8dp" />
+
+    <TextView
+        android:id="@+id/footerText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center_horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="2dp"
+        android:text="@string/footer_text"
+        android:textAlignment="center"
+        android:textSize="16sp"
+        android:textStyle="bold|italic" />
 
 </LinearLayout>

@@ -15,10 +15,9 @@ import androidx.preference.PreferenceManager;
 import androidx.preference.SwitchPreference;
 
 import me.ocv.partyup.objects.PrefsKey;
-import me.ocv.partyup.utils.SoundUtils;
 import me.ocv.partyup.utils.ToastUtils;
 
-public class SettingsActivity extends AppCompatActivity {
+public final class SettingsActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,10 +63,7 @@ public class SettingsActivity extends AppCompatActivity {
 
             SwitchPreference beMute = findPreference(PrefsKey.SHUT_UP);
             if (beMute != null) {
-                beMute.setOnPreferenceChangeListener((p, n) -> {
-                    SoundUtils.toggleShut((boolean) n);
-                    return true;
-                });
+                beMute.setOnPreferenceChangeListener((p, n) -> true);
             }
 
             SwitchPreference beSilent = findPreference(PrefsKey.BE_SILENT);

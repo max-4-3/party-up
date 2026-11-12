@@ -10,20 +10,18 @@ import androidx.preference.PreferenceManager;
 import androidx.work.Configuration;
 
 import me.ocv.partyup.objects.PrefsKey;
-import me.ocv.partyup.room.database.AppDatabase;
-import me.ocv.partyup.utils.SoundUtils;
+import me.ocv.partyup.utils.Initializer;
 
-public class PartyUP extends Application implements Configuration.Provider {
+public final class PartyUP extends Application implements Configuration.Provider {
     @Override
     public void onCreate() {
         super.onCreate();
+        Initializer.init(this);
+
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         AppCompatDelegate.setDefaultNightMode(preferences.getBoolean(PrefsKey.DARK_MODE, false)
                 ? AppCompatDelegate.MODE_NIGHT_YES
                 : AppCompatDelegate.MODE_NIGHT_NO);
-        SoundUtils.init(this);
-        SoundUtils.toggleShut(preferences.getBoolean(PrefsKey.SHUT_UP, true));
-        AppDatabase.init(this);
     }
 
     @NonNull

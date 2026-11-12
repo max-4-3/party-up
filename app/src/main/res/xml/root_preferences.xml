@@ -5,7 +5,7 @@
 
         <EditTextPreference
             android:autofillHints="url"
-            android:defaultValue="http://192.168.1.120:3923/"
+            android:defaultValue="@string/server_default_url"
             android:inputType="textUri"
             android:key="server_url"
             android:selectAllOnFocus="true"
@@ -21,28 +21,11 @@
 
     </PreferenceCategory>
     <PreferenceCategory android:title="Behavior">
-
-        <SwitchPreference
-            android:defaultValue="false"
-            android:key="be_mute"
-            android:summary="Play background sfx while uploading"
-            android:title="Shut up!" />
-        <SwitchPreference
-            android:defaultValue="false"
-            android:key="be_silent"
-            android:summary="Upload in background"
-            android:title="Don't Bother" />
         <SwitchPreference
             android:defaultValue="false"
             android:key="auto_send"
             android:title="Just go"
             app:summary="Skip confirmation screen" />
-        <SwitchPreference
-            android:defaultValue="false"
-            android:dependency="be_silent"
-            android:key="be_annoying"
-            android:summary="Gonna annoy you ;)"
-            android:title="Annoy me" />
         <ListPreference
             android:defaultValue="close"
             android:entries="@array/on_success_action_value"
@@ -52,7 +35,7 @@
             app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Share links">
+    <PreferenceCategory android:title="Share links (Demo)">
         <SwitchPreference
             android:defaultValue="false"
             android:key="use_share_url"

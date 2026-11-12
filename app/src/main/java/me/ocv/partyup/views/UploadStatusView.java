@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 import me.ocv.partyup.R;
 import me.ocv.partyup.databinding.UploadStatusElementBinding;
 import me.ocv.partyup.models.UploadStatus;
+import me.ocv.partyup.utils.NumberUtils;
 
 public final class UploadStatusView extends LinearLayout {
     private UploadStatusElementBinding statusElementBinding;
@@ -41,10 +42,12 @@ public final class UploadStatusView extends LinearLayout {
         init(context);
     }
 
+    @NonNull
     public static String formatTimestamp(long timestamp) {
         return new SimpleDateFormat("dd MMM, yyyy hh:mm a", Locale.getDefault()).format(new Date(timestamp));
     }
 
+    @NonNull
     public static String formatDuration(long start, long end) {
         long diff = Math.abs(end - start);
 
@@ -53,8 +56,12 @@ public final class UploadStatusView extends LinearLayout {
         long seconds = TimeUnit.MILLISECONDS.toSeconds(diff) % 60;
         long millis = diff % 1000;
 
-        return String.format(Locale.getDefault(), "%02dH %02dM %02dS.%03dmS", hours, minutes, seconds, millis
-        );
+        return String.format(Locale.getDefault(), "%02dH %02dM %02dS.%03dmS", hours, minutes, seconds, millis);
+    }
+
+    @NonNull
+    private static String formatBytes(long bytes) {
+        return String.format("%s (%s)", NumberUtils.formatBytes(bytes), bytes);
     }
 
     private void init(Context context) {
@@ -91,6 +98,28 @@ public final class UploadStatusView extends LinearLayout {
         setOnPause(onPause, uploadStatus);
         setOnRemove(onRemove, uploadStatus);
         setInfoDialog(uploadStatus.statusText);
+
+        syncButtons(uploadStatus);
+    }
+
+    private void syncButtons(@NonNull UploadStatus uploadStatus) {
+        boolean info = !uploadStatus.statusText.isEmpty();
+        boolean pause = true;
+        boolean stop = true;
+        boolean remove = true;
+
+        if (uploadStatus.isCompleted()) {
+            pause = stop = false;
+        } else if (uploadStatus.isOnGoing()) {
+            remove = false;
+        } else if (uploadStatus.isErrored() && uploadStatus.isFinished()) {
+            stop = pause = false;
+        }
+
+        statusElementBinding.uploadActionPause.setEnabled(pause);
+        statusElementBinding.uploadActionStop.setEnabled(stop);
+        statusElementBinding.uploadActionInfo.setEnabled(info);
+        statusElementBinding.uploadActionRemove.setEnabled(remove);
     }
 
     private void setOnRemove(@Nullable Consumer<UploadStatus> onRemove, @NonNull UploadStatus status) {
@@ -135,9 +164,9 @@ public final class UploadStatusView extends LinearLayout {
     }
 
     private void setStats(@NonNull UploadStatus uploadStatus) {
-        statusElementBinding.uploadBytesDone.setText(String.valueOf(uploadStatus.done));
-        statusElementBinding.uploadBytesTotal.setText(String.valueOf(uploadStatus.total));
-        statusElementBinding.uploadBytesLeft.setText(String.valueOf(Math.max(0, uploadStatus.total - uploadStatus.done)));
+        statusElementBinding.uploadBytesDone.setText(formatBytes(uploadStatus.done));
+        statusElementBinding.uploadBytesTotal.setText(formatBytes(uploadStatus.total));
+        statusElementBinding.uploadBytesLeft.setText(formatBytes(Math.max(0, uploadStatus.total - uploadStatus.done)));
 
         statusElementBinding.uploadTimeStarted.setText(formatTimestamp(uploadStatus.startedWhen));
         statusElementBinding.uploadTimeElapsed.setText(formatDuration(System.currentTimeMillis(), uploadStatus.startedWhen));

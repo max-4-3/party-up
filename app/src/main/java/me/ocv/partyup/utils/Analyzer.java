@@ -61,7 +61,7 @@ public final class Analyzer {
                     CustomFile cf = new CustomFile();
                     cf.content = textMessage;
                     cf.mime = "text/plain";
-                    cf.size = (long) textMessage.length();
+                    cf.size = textMessage.length();
                     files.add(cf);
                     return files.toArray(new CustomFile[0]);
                 }
@@ -87,7 +87,7 @@ public final class Analyzer {
 
             parseFile(cf, onError);
 
-            if (cf.size != null) {
+            if (cf.size != 0) {
                 files.add(cf);
                 cf.handle = uriSharable;
             }

@@ -8,48 +8,56 @@ import androidx.annotation.NonNull;
 
 import org.jetbrains.annotations.Contract;
 
-public class CustomFile implements Parcelable {
-    // Parcelable Implementations
-    public static final Creator<CustomFile> CREATOR = new Creator<>() {
-        @NonNull
-        @Contract("_ -> new")
-        @Override
-        public CustomFile createFromParcel(Parcel in) {
-            return new CustomFile(in);
-        }
+public final class CustomFile implements Parcelable {
+    public Uri handle = Uri.EMPTY;
+    public long size = 0;
+    public String name = "unnamed_file";
+    public String full_url = "";
+    public String share_url = "";
+    public String desc = "a binary file";
+    public String content = "";
+    public String mime = "";
+    public String ext = "";
 
-        @NonNull
-        @Contract(
-                value = "_ -> new",
-                pure = true
-        )
-        @Override
-        public CustomFile[] newArray(int size) {
-            return new CustomFile[size];
-        }
-    };
-    public Uri handle;
-    public Long size;
-    public String name;
-    public String full_url;
-    public String share_url;
-    public String desc;
-    public String content;
-    public String mime;
-    public String ext;
+    public boolean isText() {
+        return notEmpty(content) && mime.equalsIgnoreCase("text/plain");
+    }
+
+    public boolean isValid() {
+        return notEmpty(name) && notNull(handle) && size > 0;
+    }
+
+    public boolean isReadable() {
+        return notNull(handle) && size > 0;
+    }
+
+    private boolean notEmpty(String string) {
+        return notNull(string) && !string.isEmpty();
+    }
+
+    private boolean notNull(Object object) {
+        return object != null;
+    }
 
     public CustomFile() {
     }
 
-    protected CustomFile(
-            @NonNull Parcel in
-    ) {
-        handle = in.readParcelable(Uri.class.getClassLoader());
-        if (in.readByte() == 0) {
-            size = null;
-        } else {
-            size = in.readLong();
-        }
+    public CustomFile(Uri handle, long size, String name, String full_url, String share_url, String desc, String content, String mime, String ext) {
+        this.handle = handle;
+        this.size = size;
+        this.name = name;
+        this.full_url = full_url;
+        this.share_url = share_url;
+        this.desc = desc;
+        this.content = content;
+        this.mime = mime;
+        this.ext = ext;
+    }
+
+    // Parcelable implementations
+    private CustomFile(@NonNull Parcel in) {
+        handle = Uri.parse(in.readString());
+        size = in.readLong();
         name = in.readString();
         full_url = in.readString();
         share_url = in.readString();
@@ -59,52 +67,15 @@ public class CustomFile implements Parcelable {
         ext = in.readString();
     }
 
-    public String getBestUrl() {
-        if (!isSharable()) {
-            return "";
-        }
-        if (share_url != null && !share_url.isEmpty()) {
-            return share_url;
-        }
-        if (full_url != null && !full_url.isEmpty()) {
-            return full_url;
-        }
-        return "";
-    }
-
-    public boolean isSharable() {
-        boolean hasUrl = (share_url != null && !share_url.isEmpty()) ||
-                (full_url != null && !full_url.isEmpty());
-        boolean isText = "text/plain".equals(mime);
-
-        return hasUrl && !isText;
-    }
-
-    @NonNull
-    @Override
-    public String toString() {
-        return "CustomFile{" + "handle=" + handle + ", size=" + size + ", name=" + name +
-                ", full_url=" + full_url + ", share_url=" + share_url + ", content=" + content +
-                ", mime=" + mime + ", ext=" + ext + '}';
-    }
-
     @Override
     public int describeContents() {
         return 0;
     }
 
     @Override
-    public void writeToParcel(
-            @NonNull Parcel parcel,
-            int i
-    ) {
-        parcel.writeParcelable(handle, i);
-        if (size == null) {
-            parcel.writeByte((byte) 0);
-        } else {
-            parcel.writeByte((byte) 1);
-            parcel.writeLong(size);
-        }
+    public void writeToParcel(@NonNull Parcel parcel, int i) {
+        parcel.writeString(handle.toString());
+        parcel.writeLong(size);
         parcel.writeString(name);
         parcel.writeString(full_url);
         parcel.writeString(share_url);
@@ -114,4 +85,25 @@ public class CustomFile implements Parcelable {
         parcel.writeString(ext);
     }
 
+    public static final Creator<CustomFile> CREATOR = new Creator<>() {
+        @NonNull
+        @Contract("_ -> new")
+        @Override
+        public CustomFile createFromParcel(Parcel in) {
+            return new CustomFile(in);
+        }
+
+        @NonNull
+        @Contract(value = "_ -> new", pure = true)
+        @Override
+        public CustomFile[] newArray(int size) {
+            return new CustomFile[size];
+        }
+    };
+
+    @Override
+    @NonNull
+    public String toString() {
+        return "CustomFile (" + "handle=" + handle + ", size=" + size + ", name=" + name + ", full_url=" + full_url + ", share_url=" + share_url + ", desc=" + desc + ", content=" + content + ", mime=" + mime + ", ext=" + ext + ", CREATOR=" + CREATOR + ')';
+    }
 }

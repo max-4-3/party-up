@@ -18,8 +18,11 @@ import me.ocv.partyup.models.pojo.UploadWithInfo;
 
 @Dao
 public interface UploadDao {
-    @Query("select * from upload_status;")
+    @Query("select * from upload_status order by started_when desc")
     List<UploadStatus> getStatusAll();
+
+    @Query("select * from upload_status order by started_when desc")
+    LiveData<List<UploadStatus>> getLiveStatusAll();
 
     @Query("select * from upload_status where id is :id;")
     UploadStatus getStatusById(long id);

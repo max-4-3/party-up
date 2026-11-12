@@ -55,4 +55,14 @@
     <string name="noti_action_copy">Copy</string>
     <string name="noti_action_share">Share</string>
     <string name="noti_action_qr">Show QR</string>
+    <string name="upload_file_btn">Upload a File</string>
+    <string name="show_uploads_btn">Show Uploads</string>
+    <string name="footer_text">Sussie baka 4 the win</string>
+    <string name="header_text">Party UP!</string>
+    <string name="upload_section_break"><![CDATA[<=== Uploads ===>]]></string>
+    <string name="stats_formula">R + F + C = T</string>
+    <string name="receiver_text">Upload will begin shortly...</string>
+    <string name="upload_confirm_upload">Upload!</string>
+    <string name="upload_confirm_nevermind">Never mind!</string>
+    <string name="server_default_url">http://192.168.1.120:3923/</string>
 </resources>

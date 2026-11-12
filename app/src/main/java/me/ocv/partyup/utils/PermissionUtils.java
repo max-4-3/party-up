@@ -13,7 +13,7 @@ import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PermissionUtils {
+public final class PermissionUtils {
 
     public static final int READ_EXTERNAL_STORAGE_REQUEST_CODE = 573;
     public static final int ALL_PERMISSIONS_REQUEST_CODE = 100;
@@ -96,4 +96,5 @@ public class PermissionUtils {
         }
     }
 
+    private PermissionUtils() {}
 }
