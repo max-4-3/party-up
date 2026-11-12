@@ -9,14 +9,83 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.jetbrains.annotations.Contract;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 
-public final class FileCacheUtility {
-    private static final String TAG = "FileCacheUtility";
+public final class FileCache {
+    private static final String TAG = "FileCache";
+    private static final long CONCERNING_CACHE_SIZE = 1024L * 1024 * 1024; // 1 GiB
+
+    @NonNull
+    @Contract("_ -> new")
+    private static File getCacheDir(@NonNull Context context) {
+        return new File(context.getCacheDir(), "upload_cache");
+    }
+
+    private static long getDirectorySize(@NonNull File directory) {
+        if (!directory.isDirectory() || !directory.exists()) {
+            return directory.isFile() ? directory.length() : 0;
+        }
+
+        long size = 0;
+        File[] files = directory.listFiles();
+
+        if (files != null) {
+            for (File file : files) {
+                size += getDirectorySize(file);
+            }
+        }
+
+        return size;
+    }
+
+    public static void checkCacheSizeAndNotify(Context context) {
+        long size = getDirectorySize(getCacheDir(context));
+
+        if (size >= CONCERNING_CACHE_SIZE) {
+            ToastUtils.show(context, String.format("[%s] Clean cache!!", NumberUtils.formatBytes(size)));
+        }
+    }
+
+    @NonNull
+    public static String getExtensionFromMime(@Nullable String mime) {
+        if (mime == null) {
+            return "bin";
+        }
+
+        mime = mime.replace(';', ' ').split(" ")[0].trim().toLowerCase();
+
+        switch (mime) {
+            case "audio/ogg":
+                return "ogg";
+            case "audio/mpeg":
+                return "mp3";
+            case "audio/mp4":
+                return "m4a";
+            case "image/jpeg":
+                return "jpg";
+            case "application/pdf":
+                return "pdf";
+        }
+
+        if (mime.startsWith("text/")) {
+            return "txt";
+        }
+
+        if (mime.contains("/")) {
+            String subType = mime.split("/")[1];
+            if (subType.matches("^[a-zA-Z0-9]{1,8}$")) {
+                return subType;
+            }
+        }
+
+        return "bin";
+    }
 
     public static long getFileSize(@NonNull Context context, @NonNull Uri uri) {
         if ("file".equals(uri.getScheme())) {
@@ -40,6 +109,7 @@ public final class FileCacheUtility {
         } catch (Exception e) {
             Log.w(TAG, "Could not query file size for URI: " + uri, e);
         }
+
         return -1; // Unknown size
     }
 
@@ -92,7 +162,7 @@ public final class FileCacheUtility {
 
     @Nullable
     public static File copyUriToCache(@NonNull Context context, @NonNull Uri uri) {
-        File cacheDir = new File(context.getCacheDir(), "upload_cache");
+        File cacheDir = getCacheDir(context);
         if (!cacheDir.exists() && !cacheDir.mkdirs()) {
             Log.e(TAG, "Failed to create local cache directory.");
             return null;
@@ -127,5 +197,5 @@ public final class FileCacheUtility {
         }
     }
 
-    private FileCacheUtility() {}
+    private FileCache() {}
 }

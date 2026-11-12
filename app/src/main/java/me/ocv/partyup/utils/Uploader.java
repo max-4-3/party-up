@@ -30,11 +30,14 @@ public final class Uploader {
     }
 
     private static final String TAG = "Uploader";
+
     private final String serverUrl;
     private final String password;
+
     private final OnCompleteListener onComplete;
     private final OnErrorListener onError;
     private final OnProgressListener onProgress;
+
     private final Context context;
     private final int chunkSize;
     private StringBuilder serverResponse = new StringBuilder();
@@ -66,35 +69,17 @@ public final class Uploader {
 
         Log.d(TAG, "informing complete");
         this.onComplete.run(serverResponse.toString());
-        Log.i(
-                TAG,
-                String.format(
-                        "Uploader result: %s %s",
-                        uploadSuccess,
-                        cf.share_url != null ? cf.share_url : "(empty)"
-                )
-        );
+        Log.i(TAG, String.format("Uploader result: %s %s", uploadSuccess, cf.share_url != null ? cf.share_url : "(empty)"));
         conn.disconnect();
     }
 
-    private boolean uploadFile(
-            @NonNull CustomFile cf,
-            HttpURLConnection conn
-    ) throws Exception {
+    private boolean uploadFile(@NonNull CustomFile cf, HttpURLConnection conn) throws Exception {
         if (!cf.isReadable()) {
             Log.e(TAG, String.format("Bad media file: %s", cf));
             conn.disconnect();
             return false;
         }
-        Log.d(
-                TAG,
-                String.format(
-                        "Identified '%s' as a file (%s) with size: %d",
-                        cf.name,
-                        cf.mime,
-                        cf.size
-                )
-        );
+        Log.d(TAG, String.format("Identified '%s' as a file (%s) with size: %d", cf.name, cf.mime, cf.size));
 
         conn.setRequestMethod("PUT");
         conn.setRequestProperty("Content-Type", "application/octet-stream");
@@ -103,10 +88,8 @@ public final class Uploader {
         MessageDigest md = MessageDigest.getInstance("SHA-512");
         conn.connect();
 
-        try (
-                InputStream ins = this.context.getContentResolver().openInputStream(cf.handle);
-                OutputStream os = conn.getOutputStream()
-        ) {
+        try (InputStream ins = this.context.getContentResolver().openInputStream(cf.handle);
+             OutputStream os = conn.getOutputStream()) {
             if (ins == null) {
                 throw new RuntimeException("Input stream is null!");
             }
@@ -126,25 +109,13 @@ public final class Uploader {
                 os.write(buf, 0, n);
                 md.update(buf, 0, n);
 
-                Log.d(
-                        TAG,
-                        String.format(
-                                "[Progress] delta, total, done: %d, %d, %d",
-                                up.delta,
-                                up.total,
-                                up.done
-                        )
-                );
-
+                Log.d(TAG, String.format("[Progress] delta, total, done: %d, %d, %d", up.delta, up.total, up.done));
                 Log.d(TAG, "informing listener");
                 this.onProgress.run(up);
             }
 
             if (up.done != up.total) {
-                Log.e(TAG, "size mismatch", new IOException(
-                        "Size mismatch: expected=" + cf.size +
-                                " actual=" + up.done
-                ));
+                Log.e(TAG, "size mismatch", new IOException("Size mismatch: expected=" + cf.size + " actual=" + up.done));
             }
 
             up.total = up.done;
@@ -157,12 +128,7 @@ public final class Uploader {
         Log.d(TAG, "connection read!");
 
         if (rc >= 300) {
-            String message = String.format(
-                    Locale.getDefault(),
-                    "[%d] Server error:\n%s",
-                    rc,
-                    serverResponse.toString()
-            );
+            String message = String.format(Locale.getDefault(), "[%d] Server error:\n%s", rc, serverResponse.toString());
             this.onError.run(new RuntimeException(message));
             conn.disconnect();
             return false;
@@ -171,10 +137,7 @@ public final class Uploader {
         return uploadSuccess(md, cf);
     }
 
-    private boolean uploadSuccess(
-            @NonNull MessageDigest md,
-            CustomFile cf
-    ) {
+    private boolean uploadSuccess(@NonNull MessageDigest md, CustomFile cf) {
         Log.d(TAG, "determining success");
         StringBuilder sha = new StringBuilder();
         byte[] bSha = md.digest();
@@ -182,17 +145,14 @@ public final class Uploader {
             sha.append(String.format("%02x", bSha[a]));
         }
 
-        String[] lines = serverResponse.toString()
-                .split("\n");
+        String[] lines = serverResponse.toString().split("\n");
         if (lines.length < 3) {
             this.onError.run(new RuntimeException("SERVER ERROR:\n" + lines[0]));
             return false;
         }
 
         if (lines[2].indexOf(sha.toString()) != 0) {
-            this.onError.run(new RuntimeException(
-                    "ERROR:\nFile got corrupted during the upload;\n\n" + lines[2] + " expected\n" +
-                            sha + " from server"));
+            this.onError.run(new RuntimeException(String.format("ERROR: file got corrupted during the upload; '%s' expected '%s' from server", lines[2], sha)));
             return false;
         }
 
@@ -205,10 +165,7 @@ public final class Uploader {
         return true;
     }
 
-    private boolean uploadText(
-            @NonNull CustomFile cf,
-            HttpURLConnection conn
-    ) throws Exception {
+    private boolean uploadText(@NonNull CustomFile cf, HttpURLConnection conn) throws Exception {
         if (cf.content == null) {
             Log.e(TAG, String.format("Bad text file: %s", cf));
             conn.disconnect();
@@ -217,11 +174,7 @@ public final class Uploader {
 
         Log.d(TAG, "Creating body...");
 
-        @SuppressWarnings("CharsetObjectCanBeUsed")
-        byte[] body = ("msg=" + URLEncoder.encode(
-                cf.content,
-                StandardCharsets.UTF_8.name()
-        )).getBytes(StandardCharsets.UTF_8);
+        @SuppressWarnings("CharsetObjectCanBeUsed") byte[] body = ("msg=" + URLEncoder.encode(cf.content, StandardCharsets.UTF_8.name())).getBytes(StandardCharsets.UTF_8);
 
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
@@ -234,15 +187,7 @@ public final class Uploader {
         up.total = body.length;
         up.done = body.length;
 
-        Log.d(
-                TAG,
-                String.format(
-                        "[Progress] delta, total, done: %d, %d, %d",
-                        up.delta,
-                        up.total,
-                        up.done
-                )
-        );
+        Log.d(TAG, String.format("[Progress] delta, total, done: %d, %d, %d", up.delta, up.total, up.done));
 
         OutputStream os = conn.getOutputStream();
         os.write(body);
@@ -253,20 +198,14 @@ public final class Uploader {
 
         int rc = conn.getResponseCode();
         if (rc >= 300) {
-            String message = String.format(
-                    Locale.getDefault(),
-                    "[%d] Server error:\n%s",
-                    rc,
-                    serverResponse.toString()
-            );
+            String message = String.format(Locale.getDefault(), "[%d] Server error:\n%s", rc, serverResponse.toString());
             this.onError.run(new RuntimeException(message));
             conn.disconnect();
             return false;
         }
 
         if (serverResponse.length() > 0) {
-            cf.share_url = serverResponse.toString()
-                    .trim();
+            cf.share_url = serverResponse.toString().trim();
         } else {
             cf.share_url = "Server not happy!";
         }
@@ -275,14 +214,9 @@ public final class Uploader {
     }
 
     @NonNull
-    private HttpURLConnection makeConnection(
-            @NonNull CustomFile customFile
-    ) throws Exception {
+    private HttpURLConnection makeConnection(@NonNull CustomFile customFile) throws Exception {
         String base = serverUrl.endsWith("/") ? serverUrl : serverUrl + "/";
-        String encodedName = customFile.mime.equals("text/plain") ? "" : Uri.encode(
-                customFile.name,
-                "/"
-        );
+        String encodedName = customFile.mime.equals("text/plain") ? "" : Uri.encode(customFile.name, "/");
         String fullUrl = base + encodedName;
 
         URL url = new URL(fullUrl);
@@ -313,58 +247,40 @@ public final class Uploader {
 
     public static final class Builder {
         private static final int MIN_CHUNK_SIZE = 128 * 1024;
+        private final int chunkSize = MIN_CHUNK_SIZE;
+
         private final Context context;
+        private String serverUrl = null;
+        private String serverPassword = null;
         private OnErrorListener onError = null;
         private OnProgressListener onProgress = null;
         private OnCompleteListener onComplete = null;
-        private String serverUrl = null;
-        private String serverPassword = null;
-        private int chunkSize = MIN_CHUNK_SIZE;
 
-        public Builder(
-                @NonNull Context context
-        ) {
+        public Builder(@NonNull Context context) {
             this.context = context.getApplicationContext();
         }
 
-        public Builder setChunkSize(
-                int chunkSize
-        ) {
-            this.chunkSize = Math.max(chunkSize, MIN_CHUNK_SIZE);
-            return this;
-        }
-
-        public Builder setOnComplete(
-                @Nullable OnCompleteListener onComplete
-        ) {
+        public Builder setOnComplete(@Nullable OnCompleteListener onComplete) {
             this.onComplete = onComplete;
             return this;
         }
 
-        public Builder setOnError(
-                @Nullable OnErrorListener onError
-        ) {
+        public Builder setOnError(@Nullable OnErrorListener onError) {
             this.onError = onError;
             return this;
         }
 
-        public Builder setOnProgress(
-                @Nullable OnProgressListener onProgress
-        ) {
+        public Builder setOnProgress(@Nullable OnProgressListener onProgress) {
             this.onProgress = onProgress;
             return this;
         }
 
-        public Builder setServerPassword(
-                @NonNull String serverPassword
-        ) {
+        public Builder setServerPassword(@NonNull String serverPassword) {
             this.serverPassword = serverPassword;
             return this;
         }
 
-        public Builder setServerUrl(
-                @NonNull String serverUrl
-        ) {
+        public Builder setServerUrl(@NonNull String serverUrl) {
             this.serverUrl = serverUrl;
 
             if (!this.serverUrl.startsWith("http")) {
@@ -417,7 +333,5 @@ public final class Uploader {
             }
             return new Uploader(this);
         }
-
     }
-
 }

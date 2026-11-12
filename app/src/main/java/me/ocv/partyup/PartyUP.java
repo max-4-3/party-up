@@ -1,15 +1,13 @@
 package me.ocv.partyup;
 
 import android.app.Application;
-import android.content.SharedPreferences;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.preference.PreferenceManager;
 import androidx.work.Configuration;
 
-import me.ocv.partyup.objects.PrefsKey;
+import me.ocv.partyup.utils.FileCache;
 import me.ocv.partyup.utils.Initializer;
 
 public final class PartyUP extends Application implements Configuration.Provider {
@@ -17,11 +15,8 @@ public final class PartyUP extends Application implements Configuration.Provider
     public void onCreate() {
         super.onCreate();
         Initializer.init(this);
-
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        AppCompatDelegate.setDefaultNightMode(preferences.getBoolean(PrefsKey.DARK_MODE, false)
-                ? AppCompatDelegate.MODE_NIGHT_YES
-                : AppCompatDelegate.MODE_NIGHT_NO);
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+        FileCache.checkCacheSizeAndNotify(this);
     }
 
     @NonNull

@@ -9,14 +9,9 @@ import android.widget.Toast;
 
 public final class ToastUtils {
     private static final String TAG = "ToastUtils";
+    private static final Handler handler = new Handler(Looper.getMainLooper());
 
-    private ToastUtils() {
-    }
-
-    public static synchronized void show(
-            Context context,
-            String msg
-    ) {
+    public static synchronized void show(Context context, String msg) {
         if (context instanceof Activity) {
             Activity activity = (Activity) context;
             if (activity.isFinishing() || activity.isDestroyed()) {
@@ -25,12 +20,9 @@ public final class ToastUtils {
             }
         }
 
-        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(
-                        context.getApplicationContext(),
-                        msg,
-                        Toast.LENGTH_SHORT
-                )
-                .show());
+        handler.post(() -> Toast.makeText(context.getApplicationContext(), msg, Toast.LENGTH_SHORT).show());
     }
 
+    private ToastUtils() {
+    }
 }

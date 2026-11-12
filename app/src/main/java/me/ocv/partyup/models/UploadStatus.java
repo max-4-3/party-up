@@ -9,6 +9,7 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+@SuppressWarnings("UnusedAssignment")
 @Entity(tableName = "upload_status")
 public final class UploadStatus implements Parcelable {
     private static final float PERCENT_MUL = 100F;

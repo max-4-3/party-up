@@ -21,7 +21,7 @@ import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.models.pojo.UploadWithInfo;
 import me.ocv.partyup.objects.PrefsKey;
 import me.ocv.partyup.room.repo.UploadRepository;
-import me.ocv.partyup.utils.FileCacheUtility;
+import me.ocv.partyup.utils.FileCache;
 import me.ocv.partyup.utils.Uploader;
 
 public final class UploadWork extends Worker {
@@ -93,7 +93,7 @@ public final class UploadWork extends Worker {
                 throw e;
             }
 
-            if (!selected.completed() || selected.repository.peek().status.status != UploadStatus.Status.COMPLETED) {
+            if (selected.notCompleted() || selected.repository.peek().status.status != UploadStatus.Status.COMPLETED) {
                 selected.done(selected.repository.peek().status.total);
                 selected.complete("Upload Completed, I guess!");
             }
@@ -107,7 +107,7 @@ public final class UploadWork extends Worker {
         } finally {
             if (selected != null) {
                 Uri fileUri = selected.repository.peek().info.getUri();
-                if (FileCacheUtility.isCacheFile(getApplicationContext(), fileUri) && fileUri.getPath() != null) {
+                if (FileCache.isCacheFile(getApplicationContext(), fileUri) && fileUri.getPath() != null) {
                     File cacheFile = new File(fileUri.getPath());
                     if (cacheFile.exists()) {
                         if (cacheFile.delete()) {
@@ -144,7 +144,7 @@ public final class UploadWork extends Worker {
     @Override
     public void onStopped() {
         super.onStopped();
-        if (selected != null && !selected.completed()) {
+        if (selected != null && selected.notCompleted()) {
             selected.fail(new IllegalStateException("Worker stopped or terminated!"));
         }
     }
@@ -185,8 +185,8 @@ public final class UploadWork extends Worker {
             hook.accept(repository.peek());
         }
 
-        public boolean completed() {
-            return repository.completed();
+        public boolean notCompleted() {
+            return !repository.completed();
         }
 
         @NonNull

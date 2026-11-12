@@ -4,14 +4,14 @@
 - It must expose method to:
     - enqueue -> enqueue a specific upload request to the internal Queue
     - status_check -> check status of specific upload given its id (output of queue)
-- Internally it writes to a sql database the three main status:
+- Internally it writes to a SQL database the three main status:
     - QUEUED / IDLE -> it's starting (or will be starting soon)
     - RUNNING -> it's working (uploading...), in this state using status_check must give done,
       total, elapsed (it could be calculated on the fly by System.currentTimeMillis () -
       item.queuedAt)
     - FINISHED / FAILED -> it's finished working and is completed (FINISHED) or failed (FAILED),
       this state could contain an extra field for reason?
-- Writing to sql database makes it easy for any UI part to list all entities, and specifically look
+- Writing to SQL database makes it easy for any UI part to list all entities, and specifically look
   for one
 - But..... this is by design sequential, which could be an issue given, say we wanna upload 4 3Gib
   files, we will have to wait 1 to finish...
@@ -30,7 +30,7 @@
 
 # NOTES
 
-- for multiple files, what should be done?, seprate upload request or one request with multiple
+- for multiple files, what should be done?, separate upload request or one request with multiple
   files?
 - Basic notification for one upload request:
 
@@ -64,7 +64,7 @@ finest_flower_in_gardeeen.mov 43% elapsed time:                  1.4 min bytes s
 UI needs to know:
 
 - done -> the bytes send to server and acknowledged
-- total -> the bytes sub total
+- total -> the bytes sub-total
 - started_when -> started when, can be used to calculate elapsed time
 - status_text -> text for current status, for example when finished it will contain the server
   response, same when failed

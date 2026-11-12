@@ -118,12 +118,12 @@ public final class UploadRepository {
             update(upload);
         }
 
-        public long status(UploadStatus.Status status, String reason) {
-            return updateStatus(upload.status, status, reason);
+        public void status(UploadStatus.Status status, String reason) {
+            updateStatus(upload.status, status, reason);
         }
 
-        public long done(long done) {
-            return updateDone(upload.status, done);
+        public void done(long done) {
+            updateDone(upload.status, done);
         }
 
         public void increment(long count) {

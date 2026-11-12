@@ -8,14 +8,14 @@ import androidx.room.Relation;
 import me.ocv.partyup.models.UploadInfo;
 import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.objects.CustomFile;
-import me.ocv.partyup.utils.Analyzer;
+import me.ocv.partyup.utils.FileCache;
 
 public class UploadWithInfo {
     @Embedded
-    public UploadStatus status;
+    public final UploadStatus status;
 
     @Relation(parentColumn = "id", entityColumn = "status_id")
-    public UploadInfo info;
+    public final UploadInfo info;
 
     public UploadWithInfo snapshot() {
         return new UploadWithInfo(status, info);
@@ -34,7 +34,7 @@ public class UploadWithInfo {
         file.name = info.fileName;
         file.content = info.textContent;
         file.mime = info.contentType;
-        file.ext = Analyzer.getExtensionFromMime(file.mime);
+        file.ext = FileCache.getExtensionFromMime(file.mime);
         file.size = info.size;
 
         return file;

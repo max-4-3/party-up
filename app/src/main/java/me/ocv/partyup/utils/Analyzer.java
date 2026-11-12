@@ -20,18 +20,19 @@ import java.util.Locale;
 
 import me.ocv.partyup.objects.CustomFile;
 
+@SuppressWarnings("deprecation")
 public final class Analyzer {
     private static final String TAG = "Analyzer";
     private static final int BUFFER_SIZE = 128 * 1024; // 128 KB
 
     private final Context context;
 
-    public Analyzer(@NonNull Context context) {
+    private Analyzer(@NonNull Context context) {
         this.context = context.getApplicationContext();
     }
 
     @NonNull
-    public CustomFile[] analyze(@NonNull Intent intent, @NonNull Consumer<String> onError) {
+    private List<CustomFile> analyze_(@NonNull Intent intent, @NonNull Consumer<String> onError) {
         List<CustomFile> files = new ArrayList<>();
 
         String action = intent.getAction();
@@ -41,7 +42,7 @@ public final class Analyzer {
 
         if (eType == null || (!isSingleSend && !isMultipleSend)) {
             onError.accept("Cannot share content; action: " + action + ", type: " + eType);
-            return new CustomFile[0];
+            return files;
         }
 
         List<Uri> handles = new ArrayList<>();
@@ -63,14 +64,14 @@ public final class Analyzer {
                     cf.mime = "text/plain";
                     cf.size = textMessage.length();
                     files.add(cf);
-                    return files.toArray(new CustomFile[0]);
+                    return files;
                 }
             }
         }
 
         if (handles.isEmpty()) {
             onError.accept("Cannot decide on what to send for type: " + eType);
-            return new CustomFile[0];
+            return files;
         }
 
         for (Uri uriRaw : handles) {
@@ -93,13 +94,13 @@ public final class Analyzer {
             }
         }
 
-        return files.toArray(new CustomFile[0]);
+        return files;
     }
 
     @Nullable
     private Uri giveSendableUri(Context context, Uri uri) {
         Uri result = uri;
-        long fileSize = FileCacheUtility.getFileSize(context, uri);
+        long fileSize = FileCache.getFileSize(context, uri);
         long maxCacheLimit = 100L * 1024 * 1024; // 100 MB
 
         if (fileSize > maxCacheLimit) {
@@ -113,7 +114,7 @@ public final class Analyzer {
             Log.d("Analyzer", "Persistable permission secured for URI: " + uri);
         } catch (SecurityException e) {
             Log.w("Analyzer", "Could not take persistable permission (copying to cache): " + e.getMessage());
-            File cacheFile = FileCacheUtility.copyUriToCache(context, uri);
+            File cacheFile = FileCache.copyUriToCache(context, uri);
             if (cacheFile != null) {
                 result = Uri.fromFile(cacheFile);
             } else {
@@ -125,9 +126,9 @@ public final class Analyzer {
     }
 
     private void parseFile(@NonNull CustomFile cf, @NonNull Consumer<String> onError) {
-        cf.ext = getExtensionFromMime(cf.mime);
-        cf.name = FileCacheUtility.getOriginalFileName(context, cf.handle);
-        cf.size = FileCacheUtility.getFileSize(context, cf.handle);
+        cf.ext = FileCache.getExtensionFromMime(cf.mime);
+        cf.name = FileCache.getOriginalFileName(context, cf.handle);
+        cf.size = FileCache.getFileSize(context, cf.handle);
 
         MessageDigest md = null;
         if (cf.name == null) {
@@ -173,37 +174,7 @@ public final class Analyzer {
     }
 
     @NonNull
-    public static String getExtensionFromMime(@Nullable String mime) {
-        if (mime == null) {
-            return "bin";
-        }
-
-        mime = mime.replace(';', ' ').split(" ")[0].trim().toLowerCase(Locale.ROOT);
-
-        switch (mime) {
-            case "audio/ogg":
-                return "ogg";
-            case "audio/mpeg":
-                return "mp3";
-            case "audio/mp4":
-                return "m4a";
-            case "image/jpeg":
-                return "jpg";
-            case "application/pdf":
-                return "pdf";
-        }
-
-        if (mime.startsWith("text/")) {
-            return "txt";
-        }
-
-        if (mime.contains("/")) {
-            String subType = mime.split("/")[1];
-            if (subType.matches("^[a-zA-Z0-9]{1,8}$")) {
-                return subType;
-            }
-        }
-
-        return "bin";
+    public static List<CustomFile> analyze(@NonNull Context context, @NonNull Intent intent) {
+        return new Analyzer(context).analyze_(intent, err -> Log.e(TAG, String.format("ERROR: error parsing intent: %s", err)));
     }
 }

@@ -10,7 +10,8 @@ only the PUT API is implemented for now so there is no resumable uploads yet
 
 ## Build
 cp: `./.env.example` -> `./.env`
-  - poplute it with values 
+
+- populate it with values
   - run `./gradlew app:build`
 
 ## Basic usage

@@ -26,3 +26,6 @@ google-services.json
 .cxx
 local.properties
 gradle/gradle-daemon-jvm.properties
+
+.env*
+!.env.example

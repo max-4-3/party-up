@@ -10,25 +10,7 @@ import java.net.HttpURLConnection;
 
 public final class NetworkUtils {
     private static final int BUFFER_SIZE = 1024 * 1024;
-
     private NetworkUtils() {
-    }
-
-    @NonNull
-    public static StringBuilder readConnection(
-            @NonNull HttpURLConnection connection,
-            @NonNull ResponseOk ok
-    ) throws IOException {
-        InputStream is;
-        int status = connection.getResponseCode();
-
-        if (!ok.check(status) || status >= 400) {
-            is = connection.getErrorStream();
-        } else {
-            is = connection.getInputStream();
-        }
-
-        return readInputStream(is);
     }
 
     @NonNull
@@ -51,9 +33,7 @@ public final class NetworkUtils {
     }
 
     @NonNull
-    public static StringBuilder readConnection(
-            @NonNull HttpURLConnection connection
-    ) throws IOException {
+    public static StringBuilder readConnection(@NonNull HttpURLConnection connection) throws IOException {
         InputStream is;
         if (connection.getResponseCode() >= 400) {
             is = connection.getErrorStream();
@@ -67,7 +47,5 @@ public final class NetworkUtils {
     @FunctionalInterface
     public interface ResponseOk {
         boolean check(int status);
-
     }
-
 }

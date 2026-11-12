@@ -7,6 +7,8 @@ import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkRequest;
 
+import org.jetbrains.annotations.Contract;
+
 import me.ocv.partyup.models.UploadInfo;
 import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.objects.CustomFile;
@@ -26,7 +28,8 @@ public final class WorkUtility {
     }
 
     @NonNull
-    public static UploadRequest enqueueWork(CustomFile customFile) {
+    @Contract("_ -> new")
+    public static UploadRequest enqueueWork(@NonNull CustomFile customFile) {
         String title = customFile.name;
         long total = customFile.size;
         String handle = customFile.handle.toString();

@@ -1,6 +1,8 @@
 package me.ocv.partyup.views;
 
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.text.TextUtils;
@@ -23,6 +25,7 @@ import me.ocv.partyup.R;
 import me.ocv.partyup.databinding.UploadStatusElementBinding;
 import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.utils.NumberUtils;
+import me.ocv.partyup.utils.ToastUtils;
 
 public final class UploadStatusView extends LinearLayout {
     private UploadStatusElementBinding statusElementBinding;
@@ -157,10 +160,21 @@ public final class UploadStatusView extends LinearLayout {
         statusElementBinding.uploadActionInfo.setEnabled(hasText);
 
         if (hasText) {
-            statusElementBinding.uploadActionInfo.setOnClickListener(v -> new AlertDialog.Builder(getContext()).setTitle("Server Status Details").setMessage(fullText).setPositiveButton("Close", (dialog, which) -> dialog.dismiss()).show());
+            statusElementBinding.uploadActionInfo.setOnClickListener(v -> new AlertDialog.Builder(getContext()).setTitle("Server Status Details").setMessage(fullText).setNeutralButton("Copy", (d, w) -> {
+                copyToClipboard(getContext(), fullText);
+                d.dismiss();
+            }).setPositiveButton("Close", (dialog, which) -> dialog.dismiss()).show());
         } else {
             statusElementBinding.uploadActionInfo.setOnClickListener(null);
         }
+    }
+
+    public static void copyToClipboard(@NonNull Context context, String text) {
+        ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+
+        clipboard.setPrimaryClip(ClipData.newPlainText("Copied text", text));
+
+        ToastUtils.show(context, "Copied to clipboard!");
     }
 
     private void setStats(@NonNull UploadStatus uploadStatus) {
@@ -219,7 +233,7 @@ public final class UploadStatusView extends LinearLayout {
         statusElementBinding.uploadProgress.setMax(100);
         statusElementBinding.uploadTitle.setText("");
         statusElementBinding.uploadPercentage.setText("");
-        statusElementBinding.uploadStatusText.setText("Idle...");
+        statusElementBinding.uploadStatusText.setText("");
         statusElementBinding.uploadBytesDone.setText("0");
         statusElementBinding.uploadBytesTotal.setText("0");
         statusElementBinding.uploadBytesLeft.setText("0");

@@ -30,7 +30,7 @@ import me.ocv.partyup.databinding.ActivityTempReceiverBinding;
 import me.ocv.partyup.objects.CustomFile;
 import me.ocv.partyup.objects.PrefsKey;
 import me.ocv.partyup.utils.Analyzer;
-import me.ocv.partyup.utils.FileCacheUtility;
+import me.ocv.partyup.utils.FileCache;
 import me.ocv.partyup.utils.NumberUtils;
 import me.ocv.partyup.utils.ToastUtils;
 import me.ocv.partyup.views.InfoKeyValuePairView;
@@ -80,6 +80,7 @@ public final class TempReceiver extends AppCompatActivity {
         });
     }
 
+    @NonNull
     private View getSeparator() {
         View separator = new View(this);
         separator.setBackgroundColor(Color.WHITE);
@@ -130,7 +131,7 @@ public final class TempReceiver extends AppCompatActivity {
         }
 
         info.put("Handle", file.handle);
-        info.put("Cached", FileCacheUtility.isCacheFile(TempReceiver.this, file.handle) ? "yes" : "no");
+        info.put("Cached", FileCache.isCacheFile(TempReceiver.this, file.handle) ? "yes" : "no");
 
         runOnUiThread(() -> info.forEach((key, value) -> {
             InfoKeyValuePairView view = new InfoKeyValuePairView(this);
@@ -161,7 +162,7 @@ public final class TempReceiver extends AppCompatActivity {
     private List<CustomFile> getFilesFromIntent() {
         List<CustomFile> files = new ArrayList<>();
 
-        for (CustomFile file : new Analyzer(this).analyze(getIntent(), msg -> Log.e(TAG, String.format("Error while parsing intent: %s", msg)))) {
+        for (CustomFile file : Analyzer.analyze(this, getIntent())) {
             Log.w(TAG, String.format("parsed file: %s", file.toString()));
 
             if (file.isValid()) {

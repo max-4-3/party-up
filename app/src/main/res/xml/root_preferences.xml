@@ -53,12 +53,4 @@
             android:title="Default password"
             app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
-    <PreferenceCategory android:title="UI">
-        <SwitchPreference
-            android:defaultValue="false"
-            android:key="dark_mode"
-            android:summary="Use Dark mode for UI"
-            android:title="Dark mode" />
-    </PreferenceCategory>
-
 </PreferenceScreen>

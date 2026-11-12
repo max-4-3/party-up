@@ -6,6 +6,31 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <TextView
+        android:id="@+id/mainText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="2dp"
+        android:text="@string/welcome_text" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="8dp" />
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:contentDescription="@string/banner_description"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="2dp"
+        app:srcCompat="@drawable/banner" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="8dp" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -59,33 +84,6 @@
         android:layout_height="8dp" />
 
     <TextView
-        android:id="@+id/mainText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="2dp"
-        android:text="@string/textview_placeholder" />
-
-    <Space
-        android:layout_width="match_parent"
-        android:layout_height="8dp" />
-
-    <ImageView
-        android:id="@+id/mainImage"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="2dp"
-        android:contentDescription="@string/banner_description"
-        app:srcCompat="@drawable/banner" />
-
-    <Space
-        android:layout_width="match_parent"
-        android:layout_height="8dp" />
-
-    <TextView
-        android:id="@+id/footerText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
@@ -96,5 +94,4 @@
         android:textAlignment="center"
         android:textSize="16sp"
         android:textStyle="bold|italic" />
-
 </LinearLayout>
