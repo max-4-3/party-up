@@ -1,40 +1,10 @@
-TODO:
-[ ] Notification kinda not work when "annoying" is turned on, take a look there  
-[x] Change 'UploaderService' to diffrent instance per requests.  
-[x] Show server response  
-[x] Server error isn't working neatly  
-[ ] UI is still wonnkie  
-  
-  
-NOTE: `file` is a custom object not to be confused with `File`  
-NOTE: progress is also a custom object (with suitable methods)  
-
-Service:
-- Handles upload ( drains queue ) ( can be several files ) ( on command, with a file object )  
-- ~~Expose a method to get progress~~ Instead use an interface OnProgressListener
-- Expose a method to initiate upload (via appending to a queue)  
-- OnBind should return a binder that will be responsible for exposing the Expose methods
-- Should it be Foreground service? heck yeah, the service will manage the notifications so it should be Foreground.  
-
-Activity:
-- Start the Service  
-- Bind to the Service  
-- ~~Start a watcher (or monitor ) the Service's progress via repeatedly getting the progress and
-  updating UI~~
-    - ~~issue is "repeatedly", will it slow down my ui?~~
-    - ~~also garenties that updates will be smooth (I hope )~~
-- Works solely on callback, yeah can be callback hell ;-;  
-- How should the upload be handled? (user need to command the Service to start upload)
-- ~~should the Activity send all files to upload at once (prob introduce race conditions) or~~ feed them one at a time
-- this Activity can be killed, on command (obviously) and the upload will go on
-
-progress:
-- total
-- done
-- step
-- currentFile:
-    - name
-    - title
-    - desc
-    - size
-    - etc
+- progress update via notification (oh no, notifications...)
+- implement `MainActivity.chooseAndUploadFile`
+- bring back after upload actions (QR, Share, etc.)
+- add configurations for:
+  - number of threads WorkManager uses (concurrency limit)
+  - toggle to indicate whether to copy file to cacher or no (maybe for single upload requests)
+  - auto cache deletion (gonna require a separate worker)
+- test for later uploads
+- write some good footer and welcome text
+- take into account the `strings.xml` and raw `android:text` in layouts
