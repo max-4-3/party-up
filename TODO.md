@@ -9,3 +9,4 @@
 - test for later uploads
 - write some good footer and welcome text
 - take into account the `strings.xml` and raw `android:text` in layouts
+- use diffUtil in UploadInfoActivity, so as not to redraw the entire RecyclerView on change

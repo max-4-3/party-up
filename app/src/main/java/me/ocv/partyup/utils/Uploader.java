@@ -10,6 +10,8 @@ import androidx.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -17,8 +19,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.security.SecureRandom;
+
+import org.json.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import me.ocv.partyup.objects.CustomFile;
 
@@ -229,6 +237,127 @@ public final class Uploader {
         conn.setDoOutput(true);
         Log.d(TAG, "Sending to: " + fullUrl);
         return conn;
+    }
+
+    @Nullable
+    public static String getShareUrl(Iterable<CustomFile> files) {
+        if (files == null || !files.iterator().hasNext()) {
+            return null;
+        }
+
+        // Build the body
+        try {
+            JSONObject body = buildShareBody(files);
+            String shareServerUrl = getShareServerUrl();
+            if (isNullOrEmpty(shareServerUrl)) {
+                throw new IllegalArgumentException(String.format("provided an empty or null server url: %s", shareServerUrl));
+            }
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(shareServerUrl).openConnection();
+            try {
+                conn.setDoOutput(true);
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "text/plain");
+                String password = getServerPassword();
+
+                if (!isNullOrEmpty(password)) {
+                    conn.setRequestProperty("PW", password);
+                }
+
+                byte[] _body = body.toString().getBytes(StandardCharsets.UTF_8);
+                conn.setFixedLengthStreamingMode(_body.length);
+
+                conn.connect();
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(_body);
+                }
+
+                int response = conn.getResponseCode();
+                if (response >= 300) {
+                    throw new RuntimeException(String.format("server returned not ok response: %s", response));
+                }
+
+                String resp = NetworkUtils.readInputStream(conn.getInputStream()).toString();
+                if (!isNullOrEmpty(resp) && resp.startsWith("created share: ")) {
+                    return resp.substring(15);
+                } else {
+                    throw new RuntimeException(String.format("server didn't responded correctly: '%s'", resp));
+                }
+            } finally {
+                conn.disconnect();
+            }
+        } catch (Exception e) {
+            Log.e("ShareCreation", String.format("ERROR: unable to create share url: %s", e.getMessage()));
+            return null;
+        }
+    }
+
+    @Nullable
+    private static String getServerPassword() {
+        return null; // TODO: fetch serverPassword from SharedPrefs
+    }
+
+    private static String getShareServerUrl() {
+        return ""; // TODO: load `serverUrl` from SharedPrefs, extracts it domain, add "?share"
+                   // i.e.: http://192.168.1.1:3923/Upload/Some/Path  -> http://192.168.1.1:3923/?share
+    }
+
+    @NonNull
+    private static JSONObject buildShareBody(@NonNull Iterable<CustomFile> files) throws JSONException {
+        JSONArray vps = new JSONArray();
+        for (CustomFile file: files) {
+            if (!isNullOrEmpty(file.share_url)) {
+                vps.put(file.share_url);
+            } else if (!isNullOrEmpty(file.full_url)) {
+                vps.put(file.full_url);
+            }
+        }
+
+        /**
+         * body = {
+         *   "k": "...",        # some random key of length 12
+         *   "vp": ["..."],     # array of string(path on server, e.g.: http://192.168.1.1:3923/file/uploaded.txt)
+         *   "pw": "...",       # share password, password that will be applied to shareUrl generated
+         *   "exp": "...",      # expiration duration in minutes
+         *   "perms": ["read"]  # permission for the share, readonly for now
+         * }
+         *
+         */
+
+        JSONObject body = new JSONObject();
+        body.put("k", makeShareKey());
+        body.put("pw", getSharePassword());
+        body.put("exp", getShareExpiration());
+
+        body.put("vp", vps);
+        body.put("perms", new JSONArray(List.of("read")));
+
+        return body;
+    }
+
+    private static String getShareExpiration() {
+        return "0"; // TODO: fetch it from SharedPrefs
+    }
+
+    private static String getSharePassword() {
+        return "";  // TODO: fetch it from SharedPrefs
+    }
+
+    private static final String chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    private static String makeShareKey() {
+        StringBuilder key = new StringBuilder();
+        SecureRandom random = new SecureRandom();
+
+        for (int i = 0; i < 12; ++i) {
+            key.append(chars.charAt(random.nextInt(chars.length())));
+        }
+
+        return key.toString();
+    }
+
+    private static boolean isNullOrEmpty(String str) {
+        return str == null || str.isEmpty();
     }
 
     @FunctionalInterface

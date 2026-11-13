@@ -30,10 +30,13 @@ import java.util.function.Predicate;
 
 import me.ocv.partyup.databinding.ActivityUploadInfoBinding;
 import me.ocv.partyup.models.UploadStatus;
+import me.ocv.partyup.models.pojo.UploadWithInfo;
 import me.ocv.partyup.room.repo.UploadRepository;
 import me.ocv.partyup.utils.PostUploadActions;
 import me.ocv.partyup.utils.ToastUtils;
+import me.ocv.partyup.utils.Uploader;
 import me.ocv.partyup.views.UploadStatusView;
+import me.ocv.partyup.objects.CustomFile;
 
 public final class UploadInfoActivity extends AppCompatActivity {
     public static final class UploadStatusAdapter extends RecyclerView.Adapter<UploadStatusAdapter.ViewHolder> {
@@ -239,8 +242,15 @@ public final class UploadInfoActivity extends AppCompatActivity {
 
     @Nullable
     private String getShareUrl(Iterable<UploadStatus> statuses) {
-        // TODO: Implement the function
-        return null;
+        List<CustomFile> files = new ArrayList<>();
+        for (UploadStatus status: statuses) {
+            UploadWithInfo info = repository.uploadOf(status.id);
+            if (info != null) {
+                files.add(info.toCustomFile());
+            }
+        }
+
+        return Uploader.getShareUrl(files);
     }
 
     private void handleLongClick(UploadStatus uploadStatus, int position) {

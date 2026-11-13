@@ -36,6 +36,8 @@ public class UploadWithInfo {
         file.mime = info.contentType;
         file.ext = FileCache.getExtensionFromMime(file.mime);
         file.size = info.size;
+        file.share_url = info.shareUrl;
+        file.full_url = info.fullUrl;
 
         return file;
     }
