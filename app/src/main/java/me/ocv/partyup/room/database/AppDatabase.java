@@ -11,7 +11,7 @@ import me.ocv.partyup.models.UploadInfo;
 import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.room.dao.UploadDao;
 
-@Database(entities = {UploadStatus.class, UploadInfo.class}, version = 2)
+@Database(entities = {UploadStatus.class, UploadInfo.class}, version = 3)
 public abstract class AppDatabase extends RoomDatabase {
     public abstract UploadDao uploadStatusDao();
 

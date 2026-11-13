@@ -1,91 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <LinearLayout
-        android:id="@+id/uploadStats"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="4dp">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:text="@string/stats_formula"
-            android:textAlignment="center"
-            android:textStyle="bold" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:layout_marginVertical="4dp"
-            android:background="@color/white" />
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
         <LinearLayout
+            android:id="@+id/uploadStats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:padding="4dp">
 
             <TextView
-                android:id="@+id/uploadsRunning"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_weight="1"
-                android:text="6"
-                android:textAlignment="center" />
+                android:text="@string/stats_formula"
+                android:textAlignment="center"
+                android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/uploadsFailed"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="4"
-                android:textAlignment="center" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_marginVertical="4dp"
+                android:background="@color/white" />
 
-            <TextView
-                android:id="@+id/uploadsCompleted"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="10"
-                android:textAlignment="center" />
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/uploadsTotal"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="20"
-                android:textAlignment="center" />
+                <TextView
+                    android:id="@+id/uploadsRunning"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="6"
+                    android:textAlignment="center" />
+
+                <TextView
+                    android:id="@+id/uploadsFailed"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="4"
+                    android:textAlignment="center" />
+
+                <TextView
+                    android:id="@+id/uploadsCompleted"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="10"
+                    android:textAlignment="center" />
+
+                <TextView
+                    android:id="@+id/uploadsTotal"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="20"
+                    android:textAlignment="center" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="10dp"
+            android:textAlignment="center"
+            android:text="@string/upload_section_break"
+            android:textAllCaps="true"
+            android:textColor="@color/teal_200"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            tools:ignore="AllCaps" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/uploadLists"
+            android:layout_width="match_parent"
+            android:orientation="vertical"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            tools:itemCount="4"
+            tools:listitem="@layout/upload_status_element" />
+
     </LinearLayout>
 
-    <TextView
-        android:layout_width="match_parent"
+    <!-- The Floating Action Button -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabBatchActions"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginVertical="10dp"
-        android:textAlignment="center"
-        android:text="@string/upload_section_break"
-        android:textAllCaps="true"
-        android:textColor="@color/teal_200"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        tools:ignore="AllCaps" />
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:padding="8dp"
+        android:visibility="gone"
+        android:text="Actions"
+        app:icon="@drawable/fab_share"
+        tools:ignore="ContentDescription" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/uploadLists"
-        android:layout_width="match_parent"
-        android:orientation="vertical"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        tools:itemCount="4"
-        tools:listitem="@layout/upload_status_element" />
-
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

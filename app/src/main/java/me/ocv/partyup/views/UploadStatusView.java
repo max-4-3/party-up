@@ -5,11 +5,13 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,7 +19,9 @@ import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -72,6 +76,14 @@ public final class UploadStatusView extends LinearLayout {
         reset();
     }
 
+    public void setSelected(boolean selected) {
+        if (selected) {
+            statusElementBinding.getRoot().setBackgroundColor(ContextCompat.getColor(getContext(), R.color.container_selected_background));
+        } else {
+            statusElementBinding.getRoot().setBackgroundColor(Color.TRANSPARENT);
+        }
+    }
+
     /**
      * Public method to set or updateStatus the UploadStatus view.
      * Pass null to reset the view.
@@ -81,7 +93,10 @@ public final class UploadStatusView extends LinearLayout {
      * @param onPause      callback when Pause button is clicked
      * @param onRemove     callback when Remove button is clicked
      */
-    public void setUploadStatus(@Nullable UploadStatus uploadStatus, @Nullable Consumer<UploadStatus> onStop, @Nullable Consumer<UploadStatus> onPause, @Nullable Consumer<UploadStatus> onRemove) {
+    public void setUploadStatus(@Nullable UploadStatus uploadStatus,
+                                @Nullable Consumer<UploadStatus> onStop,
+                                @Nullable Consumer<UploadStatus> onPause,
+                                @Nullable Consumer<UploadStatus> onRemove) {
         if (statusElementBinding == null) {
             Log.e("StatusView", "Binding is null");
             return;
@@ -97,42 +112,70 @@ public final class UploadStatusView extends LinearLayout {
         setStatus(uploadStatus.status);
         setStats(uploadStatus);
 
+        Map<String, Consumer<UploadStatus>> moreActions = new LinkedHashMap<>();
+        moreActions.put("Info", u -> {
+            if (u.statusText == null || TextUtils.isEmpty(u.statusText)) return;
+
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Server response")
+                    .setMessage(u.statusText)
+                    .setPositiveButton("Copy", (d, i) -> {
+                        copyToClipboard(u.statusText);
+                        d.dismiss();
+                    })
+                    .setNegativeButton("Dismiss", (d, i) -> d.dismiss())
+                    .create()
+                    .show();
+        });
+        moreActions.put("Remove", onRemove);
+
         setOnStop(onStop, uploadStatus);
         setOnPause(onPause, uploadStatus);
-        setOnRemove(onRemove, uploadStatus);
-        setInfoDialog(uploadStatus.statusText);
+        setMoreActions(moreActions, uploadStatus);
 
         syncButtons(uploadStatus);
     }
 
+    private void toast() {
+        statusElementBinding.getRoot().post(() -> ToastUtils.show(getContext(), "Copied to clipboard!"));
+    }
+
+    private void setMoreActions(Map<String, Consumer<UploadStatus>> moreActions, UploadStatus status) {
+        statusElementBinding.uploadActionMore.setOnClickListener(v -> {
+            PopupMenu menu = new PopupMenu(getContext(), v);
+            for (String name: moreActions.keySet()) {
+                menu.getMenu().add(name);
+            }
+
+            menu.setOnMenuItemClickListener(item -> {
+                CharSequence title = item.getTitle();
+                if (title != null && title.length() > 0) {
+                    Consumer<UploadStatus> action = moreActions.get(title.toString());
+                    if (action != null) {
+                        action.accept(status);
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+            menu.show();
+        });
+    }
+
     private void syncButtons(@NonNull UploadStatus uploadStatus) {
-        boolean info = !uploadStatus.statusText.isEmpty();
         boolean pause = true;
         boolean stop = true;
-        boolean remove = true;
 
         if (uploadStatus.isCompleted()) {
             pause = stop = false;
-        } else if (uploadStatus.isOnGoing()) {
-            remove = false;
         } else if (uploadStatus.isErrored() && uploadStatus.isFinished()) {
             stop = pause = false;
         }
 
         statusElementBinding.uploadActionPause.setEnabled(pause);
         statusElementBinding.uploadActionStop.setEnabled(stop);
-        statusElementBinding.uploadActionInfo.setEnabled(info);
-        statusElementBinding.uploadActionRemove.setEnabled(remove);
-    }
-
-    private void setOnRemove(@Nullable Consumer<UploadStatus> onRemove, @NonNull UploadStatus status) {
-        boolean enabled = (onRemove != null);
-        statusElementBinding.uploadActionRemove.setEnabled(enabled);
-        if (enabled) {
-            statusElementBinding.uploadActionRemove.setOnClickListener(v -> onRemove.accept(status));
-        } else {
-            statusElementBinding.uploadActionRemove.setOnClickListener(null);
-        }
     }
 
     private void setOnStop(@Nullable Consumer<UploadStatus> onStop, @NonNull UploadStatus status) {
@@ -155,26 +198,11 @@ public final class UploadStatusView extends LinearLayout {
         }
     }
 
-    private void setInfoDialog(String fullText) {
-        boolean hasText = !TextUtils.isEmpty(fullText);
-        statusElementBinding.uploadActionInfo.setEnabled(hasText);
+    private void copyToClipboard(String text) {
+        ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboard.setPrimaryClip(ClipData.newPlainText("Server Response", text));
 
-        if (hasText) {
-            statusElementBinding.uploadActionInfo.setOnClickListener(v -> new AlertDialog.Builder(getContext()).setTitle("Server Status Details").setMessage(fullText).setNeutralButton("Copy", (d, w) -> {
-                copyToClipboard(getContext(), fullText);
-                d.dismiss();
-            }).setPositiveButton("Close", (dialog, which) -> dialog.dismiss()).show());
-        } else {
-            statusElementBinding.uploadActionInfo.setOnClickListener(null);
-        }
-    }
-
-    public static void copyToClipboard(@NonNull Context context, String text) {
-        ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-
-        clipboard.setPrimaryClip(ClipData.newPlainText("Copied text", text));
-
-        ToastUtils.show(context, "Copied to clipboard!");
+        toast();
     }
 
     private void setStats(@NonNull UploadStatus uploadStatus) {
@@ -241,6 +269,7 @@ public final class UploadStatusView extends LinearLayout {
         statusElementBinding.uploadTimeElapsed.setText("-");
         statusElementBinding.uploadActionPause.setOnClickListener(null);
         statusElementBinding.uploadActionStop.setOnClickListener(null);
-        statusElementBinding.uploadActionInfo.setOnClickListener(null);
+        statusElementBinding.uploadActionMore.setOnClickListener(null);
+        statusElementBinding.getRoot().setBackgroundColor(Color.TRANSPARENT);
     }
 }

@@ -34,13 +34,19 @@ public final class UploadInfo {
     @ColumnInfo(name = "content")
     public String textContent = "";
 
+    @ColumnInfo(name = "share_url")
+    public String shareUrl = "";
+
+    @ColumnInfo(name = "full_url")
+    public String fullUrl = "";
+
     @Ignore
     @NonNull
     public Uri getUri() {
         return Uri.parse(handle);
     }
 
-    public UploadInfo(long id, long statusId, String handle, long size, String contentType, String fileName, String textContent) {
+    public UploadInfo(long id, long statusId, String handle, long size, String contentType, String fileName, String textContent, String shareUrl, String fullUrl) {
         this.id = id;
         this.statusId = statusId;
         this.handle = handle;
@@ -48,11 +54,23 @@ public final class UploadInfo {
         this.contentType = contentType;
         this.fileName = fileName;
         this.textContent = textContent;
+        this.shareUrl = shareUrl;
+        this.fullUrl = fullUrl;
     }
 
-    @Override
     @NonNull
+    @Override
     public String toString() {
-        return "UploadInfo (" + "id=" + id + ", statusId=" + statusId + ", handle=" + handle + ", size=" + size + ", contentType=" + contentType + ", fileName=" + fileName + ", textContent=" + textContent + ')';
+        return "UploadInfo( " +
+                "id=" + id +
+                ", statusId=" + statusId +
+                ", handle='" + handle + '\'' +
+                ", size=" + size +
+                ", contentType='" + contentType + '\'' +
+                ", fileName='" + fileName + '\'' +
+                ", textContent='" + textContent + '\'' +
+                ", shareUrl='" + shareUrl + '\'' +
+                ", fullUrl='" + fullUrl + '\'' +
+                ')';
     }
 }

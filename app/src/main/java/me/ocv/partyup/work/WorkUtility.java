@@ -35,7 +35,7 @@ public final class WorkUtility {
         String handle = customFile.handle.toString();
         String mime = customFile.mime;
 
-        UploadInfo info = new UploadInfo(0, 0, handle, total, mime, title, customFile.content);
+        UploadInfo info = new UploadInfo(0, 0, handle, total, mime, title, customFile.content, "", "");
         UploadStatus status = new UploadStatus(0, title, 0, total, 0, "Idle...", UploadStatus.Status.ENQUEUED, "");
 
         UploadRepository.getInstance().addAndJoin(status, info);

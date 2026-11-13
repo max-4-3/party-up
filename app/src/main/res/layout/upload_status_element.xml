@@ -3,6 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
+    android:background="@color/container_selected_background"
     android:padding="16dp">
 
     <!-- Title and Percentage Header -->
@@ -185,6 +186,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:gravity="end"
+        android:layout_gravity="center"
         android:orientation="horizontal">
 
         <Button
@@ -204,19 +206,12 @@
             android:text="Stop" />
 
         <Button
-            android:id="@+id/uploadActionInfo"
+            android:id="@+id/uploadActionMore"
             style="?android:attr/buttonStyleSmall"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="Info" />
+            android:text="More" />
 
-        <Button
-            android:id="@+id/uploadActionRemove"
-            style="?android:attr/buttonStyleSmall"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Remove" />
     </LinearLayout>
 
 </LinearLayout>

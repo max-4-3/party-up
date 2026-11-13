@@ -71,7 +71,7 @@ public final class UploadRepository {
         return status.id;
     }
 
-    public long updateDone(@NonNull UploadStatus status, long done) {
+    public void updateDone(@NonNull UploadStatus status, long done) {
         if (done < 0 || done > status.total) {
             Log.w(TAG, String.format("Suspicious progress: id=%d, done=%d, total=%d", status.id, done, status.total));
         }
@@ -91,18 +91,17 @@ public final class UploadRepository {
 
         if (isCompleted || curr - last >= THROTTLE_INTERVAL_MS) {
             lastUpdateTime.put(status.id, curr);
-            return update(status);
+            update(status);
         }
 
-        return status.id;
     }
 
-    public long updateStatus(@NonNull UploadStatus uploadStatus, UploadStatus.Status status, String reason) {
+    public void updateStatus(@NonNull UploadStatus uploadStatus, UploadStatus.Status status, String reason) {
         uploadStatus.status = status;
         uploadStatus.statusText = reason;
 
         lastUpdateTime.remove(uploadStatus.id);
-        return update(uploadStatus);
+        update(uploadStatus);
     }
 
     public final class FocusedRepository {
@@ -131,6 +130,13 @@ public final class UploadRepository {
                 throw new IllegalArgumentException("Negative increment");
             }
             done((upload.status.done + count) % Long.MAX_VALUE);
+        }
+
+        public void links(String shareUrl, String fullUrl) {
+            upload.info.shareUrl = shareUrl;
+            upload.info.fullUrl = fullUrl;
+
+            update(upload);
         }
 
         @NonNull

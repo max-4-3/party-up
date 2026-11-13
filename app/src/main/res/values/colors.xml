@@ -15,4 +15,6 @@
 
     <!-- Accent for Errors (Complements Teal) -->
     <color name="orange_failed">#E64A19</color>      <!-- Burnt Orange / Rust -->
+    s
+    <color name="container_selected_background">#33FF9800</color>
 </resources>

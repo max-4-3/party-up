@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 
 import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.models.pojo.UploadWithInfo;
+import me.ocv.partyup.objects.CustomFile;
 import me.ocv.partyup.objects.PrefsKey;
 import me.ocv.partyup.room.repo.UploadRepository;
 import me.ocv.partyup.utils.FileCache;
@@ -77,17 +78,24 @@ public final class UploadWork extends Worker {
             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
             AtomicReference<Throwable> error = new AtomicReference<>();
 
-            Uploader uploader = new Uploader.Builder(getApplicationContext()).setServerUrl(preferences.getString(PrefsKey.SERVER_URL, "")).setServerPassword(preferences.getString(PrefsKey.SERVER_PASSWORD, "")).setOnComplete(response -> selected.complete(cleanResponse(response))).setOnProgress(progress -> {
-                selected.done(progress.done);
-                if (isStopped()) {
-                    throw new IllegalStateException("Worker was cancelled");
-                }
-            }).setOnError(err -> {
-                selected.fail(err);
-                error.set(err);
-            }).build();
+            Uploader uploader = new Uploader.Builder(getApplicationContext())
+                    .setServerUrl(preferences.getString(PrefsKey.SERVER_URL, ""))
+                    .setServerPassword(preferences.getString(PrefsKey.SERVER_PASSWORD, ""))
+                    .setOnComplete(response -> selected.complete(cleanResponse(response)))
+                    .setOnProgress(progress -> {
+                        selected.done(progress.done);
+                        if (isStopped()) {
+                            throw new IllegalStateException("Worker was cancelled");
+                        }
+                    }).setOnError(err -> {
+                        selected.fail(err);
+                        error.set(err);
+                    }).build();
 
-            uploader.upload(selected.repository.peek().toCustomFile());
+            CustomFile customFile = selected.repository.peek().toCustomFile();
+            uploader.upload(customFile); // this should have set share_url, full_url
+            selected.repository.links(customFile.share_url, customFile.full_url);
+
             Throwable e = error.get();
             if (e != null) {
                 throw e;
@@ -126,7 +134,7 @@ public final class UploadWork extends Worker {
         }
 
         // control characters, zero-width spaces, and invalid non-printable bytes
-        String cleaned = raw.replaceAll("[\\p{C}]", "").trim();
+        String cleaned = raw.replaceAll("\\p{C}", "").trim();
 
         // truncate or extract just the URL/first line to keep the status bar readable.
         if (cleaned.length() > 256) {
@@ -177,11 +185,6 @@ public final class UploadWork extends Worker {
 
         public void done(long done) {
             repository.done(done);
-            hook.accept(repository.peek());
-        }
-
-        public void step(long count) {
-            repository.increment(count);
             hook.accept(repository.peek());
         }
 

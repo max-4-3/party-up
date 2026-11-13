@@ -1,10 +1,11 @@
 package me.ocv.partyup;
 
 import android.annotation.SuppressLint;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.PopupMenu;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,20 +18,22 @@ import androidx.work.WorkManager;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import me.ocv.partyup.databinding.ActivityUploadInfoBinding;
 import me.ocv.partyup.models.UploadStatus;
-import me.ocv.partyup.objects.CustomFile;
 import me.ocv.partyup.room.repo.UploadRepository;
+import me.ocv.partyup.utils.PostUploadActions;
 import me.ocv.partyup.utils.ToastUtils;
 import me.ocv.partyup.views.UploadStatusView;
-import me.ocv.partyup.work.WorkUtility;
 
 public final class UploadInfoActivity extends AppCompatActivity {
     public static final class UploadStatusAdapter extends RecyclerView.Adapter<UploadStatusAdapter.ViewHolder> {
@@ -47,36 +50,37 @@ public final class UploadInfoActivity extends AppCompatActivity {
             void bind(UploadStatusView view, UploadStatus status);
         }
 
-        private final Binder binder;
-        private final List<UploadStatus> statuses = new ArrayList<>();
+        public interface ItemLongClickListener {
+            void onLongClick(UploadStatus item, int position);
+        }
 
-        public UploadStatusAdapter(Binder binder) {
+        private final Binder binder;
+        private final ItemLongClickListener longClickListener;
+        private final List<UploadStatus> statuses = new ArrayList<>();
+        private final Set<Long> selectedIds = new HashSet<>();
+
+        public UploadStatusAdapter(Binder binder, ItemLongClickListener longClickListener) {
             this.binder = binder;
+            this.longClickListener = longClickListener;
             setHasStableIds(true);
         }
 
-        public void addOrUpdate(UploadStatus status) {
-            for (int i = 0; i < statuses.size(); i++) {
-                if (statuses.get(i).id == status.id) {
-                    statuses.set(i, status);
-                    notifyItemChanged(i);
-                    return;
-                }
+        public void toggleSelection(long statusId) {
+            if (selectedIds.contains(statusId)) {
+                selectedIds.remove(statusId);
+            } else {
+                selectedIds.add(statusId);
             }
-
-            int position = statuses.size();
-            statuses.add(status);
-            notifyItemInserted(position);
         }
 
-        public void remove(long statusId) {
-            for (int i = 0; i < statuses.size(); ++i) {
-                if (statuses.get(i).id == statusId) {
-                    statuses.remove(i);
-                    notifyItemRemoved(i);
-                    return;
-                }
-            }
+        public boolean isSelected(long statusId) {
+            return selectedIds.contains(statusId);
+        }
+
+        @SuppressLint("NotifyDataSetChanged")
+        public void clearSelection() {
+            selectedIds.clear();
+            notifyDataSetChanged();
         }
 
         @SuppressLint("NotifyDataSetChanged")
@@ -98,7 +102,15 @@ public final class UploadInfoActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            binder.bind(holder.view, statuses.get(position));
+            UploadStatus status = statuses.get(position);
+
+            binder.bind(holder.view, status);
+            holder.itemView.setSelected(isSelected(status.id));
+
+            holder.view.setOnLongClickListener(v -> {
+                longClickListener.onLongClick(status, position);
+                return true;
+            });
         }
 
         @Override
@@ -119,7 +131,7 @@ public final class UploadInfoActivity extends AppCompatActivity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final UploadRepository repository = UploadRepository.getInstance();
 
-    private final Set<Long> observedStatusIds = new HashSet<>();
+    private final Set<UploadStatus> selectedItems = new HashSet<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -129,7 +141,7 @@ public final class UploadInfoActivity extends AppCompatActivity {
         manager = WorkManager.getInstance(UploadInfoActivity.this);
         setContentView(binding.getRoot());
 
-        adapter = new UploadStatusAdapter(this::bindStatusView);
+        adapter = new UploadStatusAdapter(this::bindStatusView, this::handleLongClick);
         binding.uploadLists.setLayoutManager(new LinearLayoutManager(this));
         binding.uploadLists.setAdapter(adapter);
 
@@ -183,18 +195,76 @@ public final class UploadInfoActivity extends AppCompatActivity {
             }
         });
 
+        binding.fabBatchActions.setOnClickListener(v -> {
+            if (selectedItems.isEmpty()) return;
+
+            executor.execute(() -> {
+                String shareUrl = getShareUrl(selectedItems);
+                if (shareUrl == null || TextUtils.isEmpty(shareUrl)) return;
+
+                Map<String, Consumer<String>> actions = new LinkedHashMap<>();
+
+                actions.put("Show QR", link -> PostUploadActions.create(UploadInfoActivity.this, adapter::clearSelection).showQRLink(link));
+                actions.put("Copy Link", link -> PostUploadActions.create(UploadInfoActivity.this, adapter::clearSelection).copyLink(link));
+                actions.put("Share Link", link -> PostUploadActions.create(UploadInfoActivity.this, adapter::clearSelection).shareLink(link));
+
+                runOnUiThread(() -> showMenu(actions, shareUrl, binding.fabBatchActions));
+            });
+        });
     }
 
-    private void observeStatus(long statusId) {
-        if (!observedStatusIds.add(statusId)) {
-            return;
+    private <T> void showMenu(Map<String, Consumer<T>> actions, T data, View anchor) {
+        if (data == null) return;
+
+        PopupMenu menu = new PopupMenu(UploadInfoActivity.this, anchor);
+        for (String name: actions.keySet()) {
+            menu.getMenu().add(name);
         }
 
-        repository.liveStatusOf(statusId).observe(this, status -> {
-            if (status != null) {
-                adapter.addOrUpdate(status);
+        menu.setOnMenuItemClickListener(item -> {
+            CharSequence title = item.getTitle();
+            if (title != null && title.length() > 0) {
+                Consumer<T> action = actions.get(title.toString());
+                if (action != null) {
+                    action.accept(data);
+                    return true;
+                }
             }
+
+            return false;
         });
+
+        menu.show();
+    }
+
+    @Nullable
+    private String getShareUrl(Iterable<UploadStatus> statuses) {
+        // TODO: Implement the function
+        return null;
+    }
+
+    private void handleLongClick(UploadStatus uploadStatus, int position) {
+        if (uploadStatus == null || position < 0) return;
+
+        if (selectedItems.contains(uploadStatus)) {
+            selectedItems.remove(uploadStatus);
+        } else {
+            selectedItems.add(uploadStatus);
+        }
+
+        adapter.toggleSelection(uploadStatus.id);
+        adapter.notifyItemChanged(position);
+        updateFabVisibility();
+    }
+
+    private void updateFabVisibility() {
+        if (selectedItems.isEmpty()) {
+            binding.fabBatchActions.hide();
+            binding.fabBatchActions.setVisibility(View.GONE);
+        } else {
+            binding.fabBatchActions.show();
+            binding.fabBatchActions.setVisibility(View.VISIBLE);
+        }
     }
 
     private void bindStatusView(@NonNull UploadStatusView view, UploadStatus status) {
@@ -224,38 +294,5 @@ public final class UploadInfoActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         executor.shutdown();
-    }
-
-    private void enqueueWork(String title, long total) {
-        executor.execute(() -> {
-            CustomFile file = new CustomFile();
-            file.name = title;
-            file.size = total;
-            file.handle = Uri.EMPTY;
-
-            WorkUtility.UploadRequest request = WorkUtility.enqueueWork(file);
-
-            runOnUiThread(() -> {
-                if (isFinishing() || isDestroyed()) {
-                    return;
-                }
-
-                WorkManager manager = WorkManager.getInstance(this);
-
-                manager.enqueue(request.request);
-
-                manager.getWorkInfoByIdLiveData(request.request.getId()).observe(this, workInfo -> {
-                    if (workInfo == null) {
-                        return;
-                    }
-
-                    long id = workInfo.getProgress().getLong("id", -1);
-
-                    if (id != -1) {
-                        observeStatus(id);
-                    }
-                });
-            });
-        });
     }
 }
