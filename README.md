@@ -55,3 +55,6 @@ check the startup script in the very-bad-idea docstring for some bonus features,
 * make chrome autoplay audio on all pages
 
 also [twitter-unmute.user.js](https://github.com/9001/copyparty/blob/hovudstraum/bin/mtag/res/twitter-unmute.user.js) to play twitter links with audio
+
+## NOTES
+- if (on Sync or assembleDebug) it complains about ENV variable not being set, then copy `.env.example` to `.env` and it should work
