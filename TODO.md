@@ -1,6 +1,7 @@
 - progress update via notification (oh no, notifications...)
 - implement `MainActivity.chooseAndUploadFile`
-- bring back after upload actions (QR, Share, etc.)
+- implement `UploadInfoActivity.getShareLink`
+- ~~bring back after upload actions (QR, Share, etc.)~~, semi completed, needs logic
 - add configurations for:
   - number of threads WorkManager uses (concurrency limit)
   - toggle to indicate whether to copy file to cacher or no (maybe for single upload requests)
