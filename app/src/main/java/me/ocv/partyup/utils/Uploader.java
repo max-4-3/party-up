@@ -241,13 +241,13 @@ public final class Uploader {
     }
 
     @Nullable
-    public static String getShareUrl(Iterable<CustomFile> files) {
+    public static String getShareUrl(Iterable<CustomFile> files) throws Exception {
         if (files == null || !files.iterator().hasNext()) {
             return null;
         }
 
-        // Build the body
         try {
+            // Build the body
             JSONObject body = buildShareBody(files);
             String shareServerUrl = getShareServerUrl();
             if (isNullOrEmpty(shareServerUrl)) {
@@ -276,7 +276,7 @@ public final class Uploader {
 
                 int response = conn.getResponseCode();
                 if (response >= 300) {
-                    throw new RuntimeException(String.format("server returned not ok response: %s", response));
+                    throw new RuntimeException(String.format("server returned not ok response code: %s\nresponse: \n%s", response, NetworkUtils.readConnection(conn)));
                 }
 
                 String resp = NetworkUtils.readInputStream(conn.getInputStream()).toString();
@@ -290,7 +290,7 @@ public final class Uploader {
             }
         } catch (Exception e) {
             Log.e("ShareCreation", String.format("ERROR: unable to create share url: %s", e.getMessage()));
-            return null;
+            throw e;
         }
     }
 

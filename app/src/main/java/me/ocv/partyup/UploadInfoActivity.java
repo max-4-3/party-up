@@ -243,18 +243,34 @@ public final class UploadInfoActivity extends AppCompatActivity {
             }
 
             executor.execute(() -> {
-                String shareUrl = getShareUrl(selectedItems);
-                if (shareUrl == null || TextUtils.isEmpty(shareUrl)) return;
+                try {
+                    String shareUrl = getShareUrl(selectedItems);
+                    if (shareUrl == null || TextUtils.isEmpty(shareUrl)) {
+                        throw new IllegalArgumentException("generated share url must not be null");
+                    }
 
-                Map<String, Consumer<String>> actions = new LinkedHashMap<>();
-
-                actions.put("Show QR", link -> PostUploadActions.create(UploadInfoActivity.this, adapter::clearSelection).showQRLink(link));
-                actions.put("Copy Link", link -> PostUploadActions.create(UploadInfoActivity.this, adapter::clearSelection).copyLink(link));
-                actions.put("Share Link", link -> PostUploadActions.create(UploadInfoActivity.this, adapter::clearSelection).shareLink(link));
-
-                runOnUiThread(() -> showMenu(actions, shareUrl, binding.fabBatchActions));
+                    Map<String, Consumer<String>> actions = createActions();
+                    runOnUiThread(() -> showMenu(actions, shareUrl, binding.fabBatchActions));
+                } catch (Exception e) {
+                    runOnUiThread(() -> new AlertDialog.Builder(UploadInfoActivity.this).setTitle("Share creation failed").setMessage(String.format("Creation of share failed for following:\n%s\nReason: \n%s", selectedItems.stream().map(i -> i.title).collect(Collectors.joining("\n")), e.getMessage())).show());
+                } finally {
+                    runOnUiThread(() -> {
+                        adapter.clearSelection();
+                        selectedItems.clear();
+                    });
+                }
             });
         });
+    }
+
+    @NonNull
+    private Map<String, Consumer<String>> createActions() {
+        Map<String, Consumer<String>> actions = new LinkedHashMap<>();
+
+        actions.put("Show QR", link -> PostUploadActions.create(UploadInfoActivity.this, adapter::clearSelection).showQRLink(link));
+        actions.put("Copy Link", link -> PostUploadActions.create(UploadInfoActivity.this, adapter::clearSelection).copyLink(link));
+        actions.put("Share Link", link -> PostUploadActions.create(UploadInfoActivity.this, adapter::clearSelection).shareLink(link));
+        return actions;
     }
 
     private <T> void showMenu(Map<String, Consumer<T>> actions, T data, View anchor) {
@@ -282,7 +298,7 @@ public final class UploadInfoActivity extends AppCompatActivity {
     }
 
     @Nullable
-    private String getShareUrl(Iterable<UploadStatus> statuses) {
+    private String getShareUrl(@NonNull Iterable<UploadStatus> statuses) throws Exception {
         List<CustomFile> files = new ArrayList<>();
         for (UploadStatus status: statuses) {
             UploadWithInfo info = repository.uploadOf(status.id);
