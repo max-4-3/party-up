@@ -1,4 +1,5 @@
-# Queue (very demanding for something simpler)
+# Uploading Logic
+## Queue (very demanding for something simpler)
 
 - A longgg lived FG service will always run in background
 - It must expose method to:
@@ -17,7 +18,7 @@
   files, we will have to wait 1 to finish...
 - Maybe, up2k?
 
-# Work (This fits nicely...)
+## Work (This fits nicely...)
 
 - Same as above, but the queueing is managed by android, the work execution is also managed by
   android
@@ -28,17 +29,17 @@
   to manage a lot of things...
 - we can add conditions
 
-# NOTES
+## NOTES
 
 - for multiple files, what should be done?, separate upload request or one request with multiple
   files?
 - Basic notification for one upload request:
 
-## short_notification
+### short_notification
 
 finest_flower_in_gardeeen.mov 43% +++++++++++++++++---------------------
 
-## expanded_notification
+### expanded_notification
 
 finest_flower_in_gardeeen.mov 43% elapsed time:                  1.4 min bytes send:
 438300943029292 bytes left:            240942000932000 bytes total:
@@ -48,7 +49,7 @@ finest_flower_in_gardeeen.mov 43% elapsed time:                  1.4 min bytes s
 
 - clicking on any notification above should fire this activity:
 
-## info screen
+### info screen
 
         finest_flower_in_gardeeen.mov
     elapsed time:                  1.4 min
@@ -59,7 +60,7 @@ finest_flower_in_gardeeen.mov 43% elapsed time:                  1.4 min bytes s
     
     [===============_____________________]
 
-# Data
+## Data
 
 UI needs to know:
 
@@ -68,3 +69,39 @@ UI needs to know:
 - started_when -> started when, can be used to calculate elapsed time
 - status_text -> text for current status, for example when finished it will contain the server
   response, same when failed
+
+# Configuration
+- The configuration will be a final non initilizable class with static methods for getting/setting preferences.  
+- Now the question is how should those getter/setter should be?
+- I am thinking of two possible ways:
+
+## generic methods
+- these type of methods require the caller to name the property before hand
+- adding new configuration is just easy as updating `Name`
+- clearly knowing the type of data a configuration holds can be a issue?
+- renaming could be easy as we only need to change the name of specific `Name` property and its value
+- class stays small
+- less friction
+
+### example:
+- Strings:
+  - setter: void string(Name name, String value)
+  - getter: String string(Name name)
+- Int:
+  - setter: void integer(Name name, int value)
+  - getter: int string(Name name)
+- ...
+
+## name specific methods 
+- these type of method will reduce one parameter, which might make it less boilerplaties...
+- adding new configuration means adding new getter & setter, which could increase friction
+- plus side is that refractoring would be easy, as with android studio we can easily rename the function if for some reason the name is unplesent
+- the class can grow very big very soon
+
+### example:
+- ServerUrl:
+    - setter: void server_url(String value)
+    - getter: String server_url()
+
+## Choice
+i am going with the `generic methods` approach...
