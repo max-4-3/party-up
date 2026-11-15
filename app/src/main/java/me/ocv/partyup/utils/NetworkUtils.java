@@ -44,8 +44,4 @@ public final class NetworkUtils {
         return readInputStream(is);
     }
 
-    @FunctionalInterface
-    public interface ResponseOk {
-        boolean check(int status);
-    }
 }

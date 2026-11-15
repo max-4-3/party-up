@@ -42,18 +42,6 @@ public final class CustomFile implements Parcelable {
     public CustomFile() {
     }
 
-    public CustomFile(Uri handle, long size, String name, String full_url, String share_url, String desc, String content, String mime, String ext) {
-        this.handle = handle;
-        this.size = size;
-        this.name = name;
-        this.full_url = full_url;
-        this.share_url = share_url;
-        this.desc = desc;
-        this.content = content;
-        this.mime = mime;
-        this.ext = ext;
-    }
-
     // Parcelable implementations
     private CustomFile(@NonNull Parcel in) {
         handle = Uri.parse(in.readString());

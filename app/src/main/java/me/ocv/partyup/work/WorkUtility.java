@@ -18,6 +18,8 @@ public final class WorkUtility {
     public static final class UploadRequest {
         public final WorkRequest request;
         public final UploadStatus status;
+
+        @SuppressWarnings("unused")
         public final UploadInfo info;
 
         public UploadRequest(WorkRequest request, UploadStatus status, UploadInfo info) {

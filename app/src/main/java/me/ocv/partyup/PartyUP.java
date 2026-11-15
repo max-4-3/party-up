@@ -22,6 +22,6 @@ public final class PartyUP extends Application implements Configuration.Provider
     @NonNull
     @Override
     public Configuration getWorkManagerConfiguration() {
-        return new Configuration.Builder().setMinimumLoggingLevel(Log.ASSERT).build();
+        return new Configuration.Builder().setMinimumLoggingLevel(BuildConfig.DEBUG ? Log.DEBUG : Log.ERROR).build();
     }
 }

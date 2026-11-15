@@ -9,6 +9,7 @@ import androidx.preference.PreferenceManager;
 import java.util.HashSet;
 import java.util.Set;
 
+@SuppressWarnings("unused")
 public final class Config {
     public enum Keys {
         AUTOSEND("auto_send"), LINK_EXPIRATION("link_expiration"), SHARE_PASSWORD("share_password"), SERVER_URL("server_url"), SERVER_PASSWORD("server_password");

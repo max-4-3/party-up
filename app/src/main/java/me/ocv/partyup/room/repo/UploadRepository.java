@@ -42,14 +42,6 @@ public final class UploadRepository {
         return upload;
     }
 
-    @NonNull
-    public LiveData<UploadStatus> liveStatusOf(long id) {
-        LiveData<UploadStatus> status = uploadDao.getStatusByIdLive(id);
-        Log.d(TAG, String.format("status of '%d': %s", id, status.getValue()));
-
-        return status;
-    }
-
     public void remove(UploadStatus status) {
         uploadDao.removeStatus(status);
         Log.d(TAG, String.format("[%s] removing status: %s", status.id, status));
@@ -64,11 +56,10 @@ public final class UploadRepository {
         Log.d(TAG, String.format("[%s,%s] updating uploadAndUpdateFile: %s", upload.status.id, upload.info.id, upload));
     }
 
-    public long update(UploadStatus status) {
+    public void update(UploadStatus status) {
         uploadDao.updateStatus(status);
         Log.d(TAG, String.format("[%s] updating status: %s", status.id, status));
 
-        return status.id;
     }
 
     public void updateDone(@NonNull UploadStatus status, long done) {
@@ -123,13 +114,6 @@ public final class UploadRepository {
 
         public void done(long done) {
             updateDone(upload.status, done);
-        }
-
-        public void increment(long count) {
-            if (count < 0) {
-                throw new IllegalArgumentException("Negative increment");
-            }
-            done((upload.status.done + count) % Long.MAX_VALUE);
         }
 
         public void links(String shareUrl, String fullUrl) {

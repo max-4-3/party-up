@@ -57,11 +57,11 @@ public final class UploadInfoActivity extends AppCompatActivity {
         }
 
         public interface Binder {
-            void bind(UploadStatusView view, UploadStatus status);
+            void bind(UploadStatusView ignoredView, UploadStatus ignoredStatus);
         }
 
         public interface ItemLongClickListener {
-            void onLongClick(UploadStatus item, int position);
+            void onLongClick(UploadStatus ignoredItem, int ignoredPosition);
         }
 
         private final Binder binder;

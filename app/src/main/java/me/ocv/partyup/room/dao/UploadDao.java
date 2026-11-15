@@ -19,19 +19,10 @@ import me.ocv.partyup.models.pojo.UploadWithInfo;
 @Dao
 public interface UploadDao {
     @Query("select * from upload_status order by started_when desc")
-    List<UploadStatus> getStatusAll();
-
-    @Query("select * from upload_status order by started_when desc")
     LiveData<List<UploadStatus>> getLiveStatusAll();
-
-    @Query("select * from upload_status where id is :id;")
-    UploadStatus getStatusById(long id);
 
     @Query("select * from upload_info where id is :id;")
     UploadInfo getInfoById(long id);
-
-    @Query("select * from upload_status where id is :id;")
-    LiveData<UploadStatus> getStatusByIdLive(long id);
 
     @Delete(entity = UploadStatus.class)
     void removeStatus(UploadStatus status);
@@ -65,13 +56,13 @@ public interface UploadDao {
     }
 
     @Transaction
-    default void update(@NonNull UploadStatus status, @NonNull UploadInfo info) {
+    default void update(UploadStatus status, UploadInfo info) {
         updateStatus(status);
         updateInfo(info);
     }
 
     @Transaction
-    default void insert(@NonNull UploadStatus status, @NonNull UploadInfo info) {
+    default void insert(UploadStatus status, UploadInfo info) {
         insertStatus(status);
         info.statusId = status.id;
         insertInfo(info);

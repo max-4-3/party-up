@@ -1,9 +1,6 @@
 package me.ocv.partyup.room.database;
 
-import android.database.Cursor;
-
 import androidx.annotation.NonNull;
-import androidx.room.Index;
 import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;

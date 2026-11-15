@@ -54,11 +54,6 @@ public final class UploadStatus implements Parcelable {
     }
 
     @Ignore
-    public boolean isOnGoing() {
-        return isStatus(Status.RUNNING);
-    }
-
-    @Ignore
     public boolean isFinished() {
         return isStatus(Status.FAILED) || isStatus(Status.COMPLETED);
     }
