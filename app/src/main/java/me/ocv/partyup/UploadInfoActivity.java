@@ -236,6 +236,25 @@ public final class UploadInfoActivity extends AppCompatActivity {
         if (context == null) {
             return;
         }
+
+        context.startActivity(createIntent(statusIds, context));
+    }
+
+    @NonNull
+    public static Intent createIntent(long[] statusIds, @NonNull Context context) {
+        List<Long> ids = new ArrayList<>();
+
+        if (statusIds != null) {
+            for (long id : statusIds) {
+                ids.add(id);
+            }
+        }
+
+        return createIntent(ids, context);
+    }
+
+    @NonNull
+    public static Intent createIntent(Iterable<Long> statusIds, @NonNull Context context) {
         Intent intent = new Intent(context, UploadInfoActivity.class);
 
         if (statusIds != null) {
@@ -271,7 +290,7 @@ public final class UploadInfoActivity extends AppCompatActivity {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         }
 
-        context.startActivity(intent);
+        return intent;
     }
 
     private class StatusObserver implements Observer<List<UploadStatus>> {
