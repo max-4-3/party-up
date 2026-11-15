@@ -4,6 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
@@ -118,6 +119,16 @@ public final class UploadStatus implements Parcelable {
         dest.writeString(statusText);
         dest.writeString(status.name());
         dest.writeString(workerId);
+    }
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if (!(obj instanceof UploadStatus)) {
+            return false;
+        }
+
+        UploadStatus other = (UploadStatus) obj;
+        return id == other.id && status == other.status && done == other.done && total == other.total && startedWhen == other.startedWhen && statusText.equals(other.statusText) && workerId.equals(other.workerId);
     }
 
     @NonNull

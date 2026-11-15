@@ -1,4 +1,4 @@
-package me.ocv.partyup.views;
+package me.ocv.partyup.ui.views;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -9,7 +9,7 @@ import androidx.annotation.Nullable;
 
 import me.ocv.partyup.databinding.InfoKeyValuePairElementBinding;
 
-public class InfoKeyValuePairView extends LinearLayout {
+public final class InfoKeyValuePairView extends LinearLayout {
     public InfoKeyValuePairView(Context context) {
         super(context);
         init(context);

@@ -49,7 +49,7 @@
 
         <activity
             android:label="@string/receiver_label"
-            android:name=".TempReceiver"
+            android:name=".ShareReceiver"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

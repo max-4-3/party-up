@@ -1,6 +1,5 @@
 package me.ocv.partyup;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -9,7 +8,6 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.PopupMenu;
 
 import androidx.annotation.NonNull;
@@ -17,7 +15,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.work.WorkManager;
 
 import java.util.ArrayList;
@@ -39,112 +36,26 @@ import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.models.pojo.UploadWithInfo;
 import me.ocv.partyup.objects.CustomFile;
 import me.ocv.partyup.room.repo.UploadRepository;
+import me.ocv.partyup.ui.adapters.UploadStatusAdapter;
+import me.ocv.partyup.ui.views.UploadStatusView;
 import me.ocv.partyup.utils.PostUploadActions;
 import me.ocv.partyup.utils.ToastUtils;
 import me.ocv.partyup.utils.Uploader;
-import me.ocv.partyup.views.UploadStatusView;
 
 
 public final class UploadInfoActivity extends AppCompatActivity {
-    public static final class UploadStatusAdapter extends RecyclerView.Adapter<UploadStatusAdapter.ViewHolder> {
-        public static final class ViewHolder extends RecyclerView.ViewHolder {
-            final UploadStatusView view;
-
-            public ViewHolder(@NonNull UploadStatusView itemView) {
-                super(itemView);
-                this.view = itemView;
-            }
-        }
-
-        public interface Binder {
-            void bind(UploadStatusView ignoredView, UploadStatus ignoredStatus);
-        }
-
-        public interface ItemLongClickListener {
-            void onLongClick(UploadStatus ignoredItem, int ignoredPosition);
-        }
-
-        private final Binder binder;
-        private final ItemLongClickListener longClickListener;
-        private final List<UploadStatus> statuses = new ArrayList<>();
-        private final Set<Long> selectedIds = new HashSet<>();
-
-        public UploadStatusAdapter(Binder binder, ItemLongClickListener longClickListener) {
-            this.binder = binder;
-            this.longClickListener = longClickListener;
-            setHasStableIds(true);
-        }
-
-        public void toggleSelection(long statusId) {
-            if (selectedIds.contains(statusId)) {
-                selectedIds.remove(statusId);
-            } else {
-                selectedIds.add(statusId);
-            }
-        }
-
-        public boolean isSelected(long statusId) {
-            return selectedIds.contains(statusId);
-        }
-
-        @SuppressLint("NotifyDataSetChanged")
-        public void clearSelection() {
-            selectedIds.clear();
-            notifyDataSetChanged();
-        }
-
-        @SuppressLint("NotifyDataSetChanged")
-        public void replaceAll(List<UploadStatus> newStatues) {
-            statuses.clear();
-            statuses.addAll(newStatues);
-            notifyDataSetChanged();
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            UploadStatusView view = new UploadStatusView(parent.getContext());
-
-            view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            UploadStatus status = statuses.get(position);
-
-            binder.bind(holder.view, status);
-            holder.itemView.setSelected(isSelected(status.id));
-
-            holder.view.setOnLongClickListener(v -> {
-                longClickListener.onLongClick(status, position);
-                return true;
-            });
-        }
-
-        @Override
-        public int getItemCount() {
-            return statuses.size();
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return statuses.get(position).id;
-        }
-    }
-
+    private static final String TAG = "UploadInfoActivity";
     private static final String STATUS_IDS = "status_ids";
-
-    private ActivityUploadInfoBinding binding;
-    private UploadStatusAdapter adapter;
-    private WorkManager manager;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final UploadRepository repository = UploadRepository.getInstance();
 
     private final Set<UploadStatus> selectedItems = new HashSet<>();
     private final Set<Long> targetStatusIds = new HashSet<>();
+
+    private ActivityUploadInfoBinding binding;
+    private UploadStatusAdapter adapter;
+    private WorkManager manager;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -161,105 +72,43 @@ public final class UploadInfoActivity extends AppCompatActivity {
         List<Long> statusIds = getStatusIdsFromIntent();
         if (statusIds != null && !statusIds.isEmpty()) {
             targetStatusIds.addAll(statusIds);
-            Log.d("UploadInfo", "Filtering for specific target IDs: " + targetStatusIds);
+            Log.d(TAG, "Filtering for specific target IDs: " + targetStatusIds);
         } else {
             targetStatusIds.clear();
-            Log.d("UploadInfo", "No target IDs found in intent. Showing all statuses.");
+            Log.d(TAG, "No target IDs found in intent. Showing all statuses.");
         }
 
-        repository.liveStatus().observe(this, new Observer<>() {
-            private final List<UploadStatus> mStatuses = new ArrayList<>();
+        repository.liveStatus().observe(this, new StatusObserver());
+        binding.fabBatchActions.setOnClickListener(v -> batchActionCallback());
+    }
 
-            @Override
-            public void onChanged(List<UploadStatus> statuses) {
-                if (statuses == null) {
-                    return;
-                } else {
-                    setStatuses(statuses);
+    private AlertDialog.Builder getAlertDialog(@NonNull String title, @NonNull String message) {
+        return new AlertDialog.Builder(this).setTitle(title).setMessage(message);
+    }
+
+    private void batchActionCallback() {
+        if (selectedItems.isEmpty()) {
+            getAlertDialog("How to share?", "Long press on any item under Uploads to select it.\\nThen you'll be able so make a share link out of the selected items!").setPositiveButton("Okay", (d, i) -> d.dismiss()).show();
+            return;
+        }
+
+        executor.execute(() -> {
+            try {
+                String shareUrl = getShareUrl(selectedItems);
+                if (shareUrl == null || TextUtils.isEmpty(shareUrl)) {
+                    throw new IllegalArgumentException("generated share url must not be null");
                 }
 
-                adapter.replaceAll(mStatuses);
-
-                int r = countStatus(UploadStatus.Status.RUNNING);
-                int f = countStatus(UploadStatus.Status.FAILED);
-                int c = countStatus(UploadStatus.Status.COMPLETED);
-                int t = mStatuses.size();
-
-                if (t != (r + f + c)) {
-                    return;
-                }
-
-                binding.uploadStats.post(() -> {
-                    binding.uploadsCompleted.setText(String.valueOf(c));
-                    binding.uploadsFailed.setText(String.valueOf(f));
-                    binding.uploadsRunning.setText(String.valueOf(r));
-                    binding.uploadsTotal.setText(String.valueOf(r + f + c));
+                Map<String, Consumer<String>> actions = createActions();
+                runOnUiThread(() -> showMenu(actions, shareUrl, binding.fabBatchActions));
+            } catch (Exception e) {
+                runOnUiThread(() -> getAlertDialog("Share creation failed", String.format("Creation of share failed for following:\n%s\nReason: \n%s", selectedItems.stream().map(i -> i.title).collect(Collectors.joining("\n")), e.getMessage())).show());
+            } finally {
+                runOnUiThread(() -> {
+                    adapter.clearSelection();
+                    selectedItems.clear();
                 });
             }
-
-            private void setStatuses(List<UploadStatus> statuses) {
-                mStatuses.clear();
-
-                Log.d("UploadInfo", String.format("Filtering based on: %s", targetStatusIds.stream().map(String::valueOf).collect(Collectors.joining(","))));
-
-                if (targetStatusIds.isEmpty()) {
-                    mStatuses.addAll(statuses);
-                } else {
-                    for (UploadStatus status : statuses) {
-                        if (targetStatusIds.contains(status.id)) {
-                            Log.d("UploadInfo", String.format("%s is present!", status.id));
-                            mStatuses.add(status);
-                        }
-                    }
-                }
-
-                mStatuses.sort(Comparator.comparingLong((UploadStatus s) -> s.startedWhen).reversed());
-            }
-
-            private int countStatus(UploadStatus.Status expected) {
-                return count(u -> u.status == expected);
-            }
-
-            private int count(Predicate<UploadStatus> predicate) {
-                int result = 0;
-
-                if (mStatuses != null) {
-                    for (UploadStatus status : mStatuses) {
-                        if (predicate.test(status)) {
-                            result++;
-                        }
-                    }
-                }
-
-                return result;
-            }
-        });
-
-
-        binding.fabBatchActions.setOnClickListener(v -> {
-            if (selectedItems.isEmpty()) {
-                new AlertDialog.Builder(UploadInfoActivity.this).setTitle("How to share?").setMessage("Long press on any item under Uploads to select it.\nThen you'll be able so make a share link out of the selected items!").setPositiveButton("Okay", (d, w) -> d.dismiss()).show();
-                return;
-            }
-
-            executor.execute(() -> {
-                try {
-                    String shareUrl = getShareUrl(selectedItems);
-                    if (shareUrl == null || TextUtils.isEmpty(shareUrl)) {
-                        throw new IllegalArgumentException("generated share url must not be null");
-                    }
-
-                    Map<String, Consumer<String>> actions = createActions();
-                    runOnUiThread(() -> showMenu(actions, shareUrl, binding.fabBatchActions));
-                } catch (Exception e) {
-                    runOnUiThread(() -> new AlertDialog.Builder(UploadInfoActivity.this).setTitle("Share creation failed").setMessage(String.format("Creation of share failed for following:\n%s\nReason: \n%s", selectedItems.stream().map(i -> i.title).collect(Collectors.joining("\n")), e.getMessage())).show());
-                } finally {
-                    runOnUiThread(() -> {
-                        adapter.clearSelection();
-                        selectedItems.clear();
-                    });
-                }
-            });
         });
     }
 
@@ -299,6 +148,8 @@ public final class UploadInfoActivity extends AppCompatActivity {
 
     @Nullable
     private String getShareUrl(@NonNull Iterable<UploadStatus> statuses) throws Exception {
+        Log.d(TAG, String.format("Creating share url for: [ %s ]", arrayString(statuses, s -> s.title, " | ")));
+
         List<CustomFile> files = new ArrayList<>();
         for (UploadStatus status: statuses) {
             UploadWithInfo info = repository.uploadOf(status.id);
@@ -388,8 +239,7 @@ public final class UploadInfoActivity extends AppCompatActivity {
         Intent intent = new Intent(context, UploadInfoActivity.class);
 
         if (statusIds != null) {
-            final String TAG = "UploadInfo";
-
+            Log.d(TAG, String.format("Packing [ %s ] status ids for showing!", arrayString(statusIds, String::valueOf, ",")));
             List<Long> _statusIds = new ArrayList<>();
             int totalCount = 0;
 
@@ -411,7 +261,7 @@ public final class UploadInfoActivity extends AppCompatActivity {
                 }
 
                 intent.putExtra(STATUS_IDS, ids);
-                Log.d(TAG, "Successfully attached " + ids.length + " status IDs to intent");
+                Log.d(TAG, "Successfully packed " + ids.length + " status IDs to intent");
             } else {
                 Log.w(TAG, "No valid status IDs to add to intent");
             }
@@ -422,5 +272,91 @@ public final class UploadInfoActivity extends AppCompatActivity {
         }
 
         context.startActivity(intent);
+    }
+
+    private class StatusObserver implements Observer<List<UploadStatus>> {
+        private static final String TAG = "StatusObserver";
+        private final List<UploadStatus> mStatuses = new ArrayList<>();
+
+        @Override
+        public void onChanged(List<UploadStatus> statuses) {
+            if (statuses == null) {
+                return;
+            } else {
+                setStatuses(statuses);
+            }
+
+            adapter.replaceAll(mStatuses);
+
+            int r = countStatus(UploadStatus.Status.RUNNING);
+            int f = countStatus(UploadStatus.Status.FAILED);
+            int c = countStatus(UploadStatus.Status.COMPLETED);
+            int t = mStatuses.size();
+
+            if (t != (r + f + c)) {
+                return;
+            }
+
+            binding.uploadStats.post(() -> {
+                binding.uploadsCompleted.setText(String.valueOf(c));
+                binding.uploadsFailed.setText(String.valueOf(f));
+                binding.uploadsRunning.setText(String.valueOf(r));
+                binding.uploadsTotal.setText(String.valueOf(r + f + c));
+            });
+        }
+
+        private void setStatuses(List<UploadStatus> statuses) {
+            mStatuses.clear();
+
+            Log.i(TAG, String.format("Filtering based on: %s", arrayString(targetStatusIds, String::valueOf, ",")));
+
+            if (targetStatusIds.isEmpty()) {
+                mStatuses.addAll(statuses);
+            } else {
+                for (UploadStatus status : statuses) {
+                    if (targetStatusIds.contains(status.id)) {
+                        Log.d(TAG, String.format("%s is present!", status.id));
+                        mStatuses.add(status);
+                    }
+                }
+            }
+
+            mStatuses.sort(Comparator.comparingLong((UploadStatus s) -> s.startedWhen).reversed());
+        }
+
+        private int countStatus(UploadStatus.Status expected) {
+            return count(u -> u.status == expected);
+        }
+
+        private int count(Predicate<UploadStatus> predicate) {
+            int result = 0;
+
+            for (UploadStatus status : mStatuses) {
+                if (predicate.test(status)) {
+                    result++;
+                }
+            }
+
+            return result;
+        }
+    }
+
+    private interface Transformer<I, R> {
+        R transform(I input);
+    }
+
+    @NonNull
+    private static <T> String arrayString(@NonNull Iterable<T> iterable, @NonNull Transformer<T, String> transformer, @NonNull String joiner) {
+        List<String> parts = new ArrayList<>();
+        for (T item : iterable) {
+            if (item != null) {
+                String rep = transformer.transform(item);
+                if (!TextUtils.isEmpty(rep)) {
+                    parts.add(rep);
+                }
+            }
+        }
+
+        return String.join(joiner, parts);
     }
 }

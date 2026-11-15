@@ -1,4 +1,4 @@
-package me.ocv.partyup.views;
+package me.ocv.partyup.ui.views;
 
 import android.app.AlertDialog;
 import android.content.ClipData;

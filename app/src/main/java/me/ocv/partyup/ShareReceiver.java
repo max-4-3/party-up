@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.UiThread;
 import androidx.annotation.WorkerThread;
@@ -20,7 +21,6 @@ import androidx.work.WorkManager;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -29,15 +29,15 @@ import java.util.stream.Collectors;
 
 import me.ocv.partyup.databinding.ActivityTempReceiverBinding;
 import me.ocv.partyup.objects.CustomFile;
+import me.ocv.partyup.ui.views.InfoKeyValuePairView;
 import me.ocv.partyup.utils.Analyzer;
 import me.ocv.partyup.utils.FileCache;
 import me.ocv.partyup.utils.NumberUtils;
 import me.ocv.partyup.utils.ToastUtils;
-import me.ocv.partyup.views.InfoKeyValuePairView;
 import me.ocv.partyup.work.WorkUtility;
 
-public final class TempReceiver extends AppCompatActivity {
-    private static final String TAG = "TempReceiver";
+public final class ShareReceiver extends AppCompatActivity {
+    private static final String TAG = "ShareReceiver";
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private ActivityTempReceiverBinding binding;
     private WorkManager workManager;
@@ -81,10 +81,11 @@ public final class TempReceiver extends AppCompatActivity {
         }
     }
 
+    @AnyThread
     private void doUpload(List<CustomFile> files) {
         executor.execute(() -> {
             List<Long> statusIds = uploadFiles(files);
-            Log.d("TempReceiver", String.format("received status ids: %s", statusIds.stream().map(String::valueOf).collect(Collectors.joining(","))));
+            Log.d(TAG, String.format("received status ids: %s", statusIds.stream().map(String::valueOf).collect(Collectors.joining(","))));
 
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) {
@@ -149,7 +150,7 @@ public final class TempReceiver extends AppCompatActivity {
         }
 
         info.put("Handle", file.handle);
-        info.put("Cached", FileCache.isCacheFile(TempReceiver.this, file.handle) ? "yes" : "no");
+        info.put("Cached", FileCache.isCacheFile(ShareReceiver.this, file.handle) ? "yes" : "no");
 
         runOnUiThread(() -> info.forEach((key, value) -> {
             InfoKeyValuePairView view = new InfoKeyValuePairView(this);
@@ -162,18 +163,14 @@ public final class TempReceiver extends AppCompatActivity {
     @NonNull
     @WorkerThread
     private List<Long> uploadFiles(@NonNull List<CustomFile> files) {
-        List<String> enqueued = new LinkedList<>();
         List<Long> statusIds = new ArrayList<>();
 
         files.forEach(file -> {
             WorkUtility.UploadRequest request = WorkUtility.enqueueWork(file);
             statusIds.add(request.status.id);
-            enqueued.add(request.request.getId().toString());
 
             workManager.enqueue(request.request);
         });
-
-        enqueued.forEach(id -> toast(String.format("Enqueued '%s'", id)));
 
         return statusIds;
     }
@@ -188,7 +185,7 @@ public final class TempReceiver extends AppCompatActivity {
         List<CustomFile> files = new ArrayList<>();
 
         for (CustomFile file : Analyzer.analyze(this, getIntent())) {
-            Log.w(TAG, String.format("parsed file: %s", file.toString()));
+            Log.d(TAG, String.format("parsed file: %s", file.toString()));
 
             if (file.isValid()) {
                 files.add(file);

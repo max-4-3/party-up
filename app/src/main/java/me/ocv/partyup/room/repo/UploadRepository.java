@@ -52,6 +52,9 @@ public final class UploadRepository {
     }
 
     public void update(UploadWithInfo upload) {
+        if (upload == null) {
+            return;
+        }
         uploadDao.update(upload.status, upload.info);
         Log.d(TAG, String.format("[%s,%s] updating uploadAndUpdateFile: %s", upload.status.id, upload.info.id, upload));
     }
