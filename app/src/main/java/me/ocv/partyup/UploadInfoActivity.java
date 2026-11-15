@@ -1,8 +1,13 @@
 package me.ocv.partyup;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.PopupMenu;
@@ -27,16 +32,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import me.ocv.partyup.databinding.ActivityUploadInfoBinding;
 import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.models.pojo.UploadWithInfo;
+import me.ocv.partyup.objects.CustomFile;
 import me.ocv.partyup.room.repo.UploadRepository;
 import me.ocv.partyup.utils.PostUploadActions;
 import me.ocv.partyup.utils.ToastUtils;
 import me.ocv.partyup.utils.Uploader;
 import me.ocv.partyup.views.UploadStatusView;
-import me.ocv.partyup.objects.CustomFile;
+
 
 public final class UploadInfoActivity extends AppCompatActivity {
     public static final class UploadStatusAdapter extends RecyclerView.Adapter<UploadStatusAdapter.ViewHolder> {
@@ -127,6 +134,8 @@ public final class UploadInfoActivity extends AppCompatActivity {
         }
     }
 
+    private static final String STATUS_IDS = "status_ids";
+
     private ActivityUploadInfoBinding binding;
     private UploadStatusAdapter adapter;
     private WorkManager manager;
@@ -135,6 +144,7 @@ public final class UploadInfoActivity extends AppCompatActivity {
     private final UploadRepository repository = UploadRepository.getInstance();
 
     private final Set<UploadStatus> selectedItems = new HashSet<>();
+    private final Set<Long> targetStatusIds = new HashSet<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -148,8 +158,17 @@ public final class UploadInfoActivity extends AppCompatActivity {
         binding.uploadLists.setLayoutManager(new LinearLayoutManager(this));
         binding.uploadLists.setAdapter(adapter);
 
+        List<Long> statusIds = getStatusIdsFromIntent();
+        if (statusIds != null && !statusIds.isEmpty()) {
+            targetStatusIds.addAll(statusIds);
+            Log.d("UploadInfo", "Filtering for specific target IDs: " + targetStatusIds);
+        } else {
+            targetStatusIds.clear();
+            Log.d("UploadInfo", "No target IDs found in intent. Showing all statuses.");
+        }
+
         repository.liveStatus().observe(this, new Observer<>() {
-            private List<UploadStatus> mStatuses;
+            private final List<UploadStatus> mStatuses = new ArrayList<>();
 
             @Override
             public void onChanged(List<UploadStatus> statuses) {
@@ -161,9 +180,9 @@ public final class UploadInfoActivity extends AppCompatActivity {
 
                 adapter.replaceAll(mStatuses);
 
-                int r = count(s -> s.status == UploadStatus.Status.RUNNING);
-                int f = count(s -> s.status == UploadStatus.Status.FAILED);
-                int c = count(s -> s.status == UploadStatus.Status.COMPLETED);
+                int r = countStatus(UploadStatus.Status.RUNNING);
+                int f = countStatus(UploadStatus.Status.FAILED);
+                int c = countStatus(UploadStatus.Status.COMPLETED);
                 int t = mStatuses.size();
 
                 if (t != (r + f + c)) {
@@ -179,8 +198,26 @@ public final class UploadInfoActivity extends AppCompatActivity {
             }
 
             private void setStatuses(List<UploadStatus> statuses) {
-                mStatuses = new ArrayList<>(statuses);
+                mStatuses.clear();
+
+                Log.d("UploadInfo", String.format("Filtering based on: %s", targetStatusIds.stream().map(String::valueOf).collect(Collectors.joining(","))));
+
+                if (targetStatusIds.isEmpty()) {
+                    mStatuses.addAll(statuses);
+                } else {
+                    for (UploadStatus status : statuses) {
+                        if (targetStatusIds.contains(status.id)) {
+                            Log.d("UploadInfo", String.format("%s is present!", status.id));
+                            mStatuses.add(status);
+                        }
+                    }
+                }
+
                 mStatuses.sort(Comparator.comparingLong((UploadStatus s) -> s.startedWhen).reversed());
+            }
+
+            private int countStatus(UploadStatus.Status expected) {
+                return count(u -> u.status == expected);
             }
 
             private int count(Predicate<UploadStatus> predicate) {
@@ -198,8 +235,12 @@ public final class UploadInfoActivity extends AppCompatActivity {
             }
         });
 
+
         binding.fabBatchActions.setOnClickListener(v -> {
-            if (selectedItems.isEmpty()) return;
+            if (selectedItems.isEmpty()) {
+                new AlertDialog.Builder(UploadInfoActivity.this).setTitle("How to share?").setMessage("Long press on any item under Uploads to select it.\nThen you'll be able so make a share link out of the selected items!").setPositiveButton("Okay", (d, w) -> d.dismiss()).show();
+                return;
+            }
 
             executor.execute(() -> {
                 String shareUrl = getShareUrl(selectedItems);
@@ -304,5 +345,66 @@ public final class UploadInfoActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         executor.shutdown();
+    }
+
+    @Nullable
+    private List<Long> getStatusIdsFromIntent() {
+        Intent intent = getIntent();
+        long[] ids = intent.getLongArrayExtra(STATUS_IDS);
+        if (ids == null || ids.length == 0) {
+            return null;
+        }
+
+        List<Long> _ids = new ArrayList<>();
+        for (long id : ids) {
+            if (id >= 0) {
+                _ids.add(id);
+            }
+        }
+
+        return !_ids.isEmpty() ? _ids : null;
+    }
+
+    public static void startFor(Iterable<Long> statusIds, Context context) {
+        if (context == null) {
+            return;
+        }
+        Intent intent = new Intent(context, UploadInfoActivity.class);
+
+        if (statusIds != null) {
+            final String TAG = "UploadInfo";
+
+            List<Long> _statusIds = new ArrayList<>();
+            int totalCount = 0;
+
+            for (Long id : statusIds) {
+                totalCount++;
+                if (id != null && id >= 0) {
+                    _statusIds.add(id);
+                } else {
+                    Log.w(TAG, "Skipped invalid or negative status ID: " + id);
+                }
+            }
+
+            Log.d(TAG, "Filtered status IDs: " + _statusIds.size() + " valid out of " + totalCount + " total");
+
+            if (!_statusIds.isEmpty()) {
+                long[] ids = new long[_statusIds.size()];
+                for (int i = 0; i < _statusIds.size(); ++i) {
+                    ids[i] = _statusIds.get(i);
+                }
+
+                intent.putExtra(STATUS_IDS, ids);
+                Log.d(TAG, "Successfully attached " + ids.length + " status IDs to intent");
+            } else {
+                Log.w(TAG, "No valid status IDs to add to intent");
+            }
+        }
+
+        if (!(context instanceof Activity)) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+
+        context.startActivity(intent);
     }
 }

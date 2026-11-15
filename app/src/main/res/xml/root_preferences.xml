@@ -26,24 +26,15 @@
             android:key="auto_send"
             android:title="Just go"
             app:summary="Skip confirmation screen" />
-        <ListPreference
-            android:defaultValue="close"
-            android:entries="@array/on_success_action_value"
-            android:entryValues="@array/on_success_action_key"
-            android:key="on_up_ok"
-            android:title="On upload success..."
-            app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Share links (Demo)">
+    <PreferenceCategory android:title="Share links">
         <EditTextPreference
             android:defaultValue=""
-            android:dependency="use_share_url"
             android:key="link_expiration"
             android:title="Default expiration (e.g., 10m, 2h, 1d)" />
         <EditTextPreference
             android:defaultValue=""
-            android:dependency="use_share_url"
             android:key="share_password"
             android:title="Default password"
             app:useSimpleSummaryProvider="true" />

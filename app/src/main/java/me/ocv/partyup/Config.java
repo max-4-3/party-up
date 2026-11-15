@@ -11,7 +11,7 @@ import java.util.Set;
 
 public final class Config {
     public enum Keys {
-        AUTOSEND("auto_send"), LINK_EXPIRATION("link_expiration"), SHARE_PASSWORD("share_password"), SERVER_URL("server_url"), SERVER_PASSWORD("server_password"), ON_UP_OK("on_up_ok");
+        AUTOSEND("auto_send"), LINK_EXPIRATION("link_expiration"), SHARE_PASSWORD("share_password"), SERVER_URL("server_url"), SERVER_PASSWORD("server_password");
 
         private final String value;
 
@@ -66,7 +66,7 @@ public final class Config {
     private static SharedPreferences preferences;
 
     public static void init(@NonNull Context context) {
-        if (preferences != null) {
+        if (preferences == null) {
             preferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
         }
     }

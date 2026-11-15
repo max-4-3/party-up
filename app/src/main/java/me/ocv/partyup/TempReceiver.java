@@ -1,6 +1,5 @@
 package me.ocv.partyup;
 
-import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -11,6 +10,8 @@ import android.widget.LinearLayout;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.annotation.UiThread;
+import androidx.annotation.WorkerThread;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import me.ocv.partyup.databinding.ActivityTempReceiverBinding;
 import me.ocv.partyup.objects.CustomFile;
@@ -81,9 +83,15 @@ public final class TempReceiver extends AppCompatActivity {
 
     private void doUpload(List<CustomFile> files) {
         executor.execute(() -> {
-            uploadFiles(files);
+            List<Long> statusIds = uploadFiles(files);
+            Log.d("TempReceiver", String.format("received status ids: %s", statusIds.stream().map(String::valueOf).collect(Collectors.joining(","))));
+
             runOnUiThread(() -> {
-                showUploadInfo();
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+
+                showUploadInfo(statusIds);
                 toast(String.format("Enqueued %s files!", files.size()));
                 binding.uploadConfirmUploadBtn.setEnabled(false);
             });
@@ -151,21 +159,28 @@ public final class TempReceiver extends AppCompatActivity {
         }));
     }
 
-    private void uploadFiles(List<CustomFile> files) {
+    @NonNull
+    @WorkerThread
+    private List<Long> uploadFiles(@NonNull List<CustomFile> files) {
         List<String> enqueued = new LinkedList<>();
+        List<Long> statusIds = new ArrayList<>();
 
-        executor.execute(() -> files.forEach(file -> {
+        files.forEach(file -> {
             WorkUtility.UploadRequest request = WorkUtility.enqueueWork(file);
+            statusIds.add(request.status.id);
             enqueued.add(request.request.getId().toString());
 
             workManager.enqueue(request.request);
-        }));
+        });
 
         enqueued.forEach(id -> toast(String.format("Enqueued '%s'", id)));
+
+        return statusIds;
     }
 
-    private void showUploadInfo() {
-        startActivity(new Intent(this, UploadInfoActivity.class));
+    @UiThread
+    private void showUploadInfo(List<Long> statusIds) {
+        UploadInfoActivity.startFor(statusIds, this);
     }
 
     @NonNull

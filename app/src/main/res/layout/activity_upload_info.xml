@@ -103,7 +103,6 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:padding="8dp"
-        android:visibility="gone"
         android:text="Actions"
         app:icon="@drawable/fab_share"
         tools:ignore="ContentDescription" />
