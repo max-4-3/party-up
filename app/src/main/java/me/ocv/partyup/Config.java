@@ -11,7 +11,7 @@ import java.util.Set;
 
 public final class Config {
     public enum Keys {
-        AUTOSEND("auto_send"), USE_SHARE_URL("use_share_url"), LINK_EXPIRATION("link_expiration"), SHARE_PASSWORD("share_password"), SERVER_URL("server_url"), SERVER_PASSWORD("server_password"), ON_UP_OK("on_up_ok");
+        AUTOSEND("auto_send"), LINK_EXPIRATION("link_expiration"), SHARE_PASSWORD("share_password"), SERVER_URL("server_url"), SERVER_PASSWORD("server_password"), ON_UP_OK("on_up_ok");
 
         private final String value;
 

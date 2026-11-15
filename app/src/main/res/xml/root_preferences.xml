@@ -36,11 +36,6 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Share links (Demo)">
-        <SwitchPreference
-            android:defaultValue="false"
-            android:key="use_share_url"
-            android:title="Use share link"
-            app:summary="Create a (temporary) share link" />
         <EditTextPreference
             android:defaultValue=""
             android:dependency="use_share_url"

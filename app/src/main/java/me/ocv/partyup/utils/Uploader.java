@@ -7,27 +7,28 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.jetbrains.annotations.Contract;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.security.SecureRandom;
 
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
-
+import me.ocv.partyup.Config;
 import me.ocv.partyup.objects.CustomFile;
 
 public final class Uploader {
@@ -60,7 +61,7 @@ public final class Uploader {
         this.chunkSize = builder.chunkSize;
     }
 
-    public void upload(CustomFile cf) throws Exception {
+    public void uploadAndUpdateFile(CustomFile cf) throws Exception {
         HttpURLConnection conn = makeConnection(cf);
         cf.full_url = conn.getURL().toString();
 
@@ -160,7 +161,7 @@ public final class Uploader {
         }
 
         if (lines[2].indexOf(sha.toString()) != 0) {
-            this.onError.run(new RuntimeException(String.format("ERROR: file got corrupted during the upload; '%s' expected '%s' from server", lines[2], sha)));
+            this.onError.run(new RuntimeException(String.format("ERROR: file got corrupted during the uploadAndUpdateFile; '%s' expected '%s' from server", lines[2], sha)));
             return false;
         }
 
@@ -295,12 +296,29 @@ public final class Uploader {
 
     @Nullable
     private static String getServerPassword() {
-        return null; // TODO: fetch serverPassword from SharedPrefs
+        String pass = Config.string(Config.Keys.SERVER_PASSWORD);
+        return !isNullOrEmpty(pass) ? pass.strip() : null;
     }
 
+    @Nullable
     private static String getShareServerUrl() {
-        return ""; // TODO: load `serverUrl` from SharedPrefs, extracts it domain, add "?share"
-                   // i.e.: http://192.168.1.1:3923/Upload/Some/Path  -> http://192.168.1.1:3923/?share
+        String serverUrl = getServerUrl();
+        if (isNullOrEmpty(serverUrl)) {
+            return null;
+        }
+
+        try {
+            URL parsed = new URL(serverUrl.strip());
+            String domain = parsed.getAuthority();
+            if (isNullOrEmpty(domain)) {
+                throw new MalformedURLException(String.format("No authority in: %s", domain));
+            }
+
+            // i.e.: http://192.168.1.1:3923/Upload/Some/Path  -> http://192.168.1.1:3923/?share
+            return String.format("%s://%s/?share", parsed.getProtocol(), domain);
+        } catch (MalformedURLException e) {
+            return null;
+        }
     }
 
     @NonNull
@@ -314,7 +332,7 @@ public final class Uploader {
             }
         }
 
-        /**
+        /*
          * body = {
          *   "k": "...",        # some random key of length 12
          *   "vp": ["..."],     # array of string(path on server, e.g.: http://192.168.1.1:3923/file/uploaded.txt)
@@ -324,7 +342,6 @@ public final class Uploader {
          * }
          *
          */
-
         JSONObject body = new JSONObject();
         body.put("k", makeShareKey());
         body.put("pw", getSharePassword());
@@ -336,15 +353,56 @@ public final class Uploader {
         return body;
     }
 
-    private static String getShareExpiration() {
-        return "0"; // TODO: fetch it from SharedPrefs
+    /**
+     * parse given expiration string (i.e.: 0 -> -1, 42 -> 42, 29m -> 29, 4h -> 240)
+     * @return expiration in minutes, -1 if invalid
+     */
+    private static long parseExpirationInMinutes(String value) {
+        if (isNullOrEmpty(value) || value.startsWith("-") || !value.trim().toLowerCase().matches("^\\d+[mhd]?$")) {
+            return -1;
+        }
+
+        try {
+            char unit = value.toLowerCase().charAt(value.length() - 1);
+            if (Character.isDigit(unit)) {
+                return Long.parseLong(value);
+            }
+
+            int mul = 1;
+
+            switch (unit) {
+                case 'h':
+                    mul = 60;
+                    break;
+                case 'd':
+                    mul = 1440;
+                    break;
+            }
+
+            return Long.parseLong(value.substring(0, value.length() - 1)) * mul;
+        } catch (Exception e) {
+            return -1L;
+        }
     }
 
+    @NonNull
+    private static String getShareExpiration() {
+        return String.valueOf(parseExpirationInMinutes(Config.string(Config.Keys.LINK_EXPIRATION)));
+    }
+
+    @Nullable
     private static String getSharePassword() {
-        return "";  // TODO: fetch it from SharedPrefs
+        String pass = Config.string(Config.Keys.SHARE_PASSWORD);
+        if (isNullOrEmpty(pass)) {
+            return null;
+        }
+
+        return pass.strip();
     }
 
     private static final String chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+    @NonNull
     private static String makeShareKey() {
         StringBuilder key = new StringBuilder();
         SecureRandom random = new SecureRandom();
@@ -404,12 +462,19 @@ public final class Uploader {
             return this;
         }
 
-        public Builder setServerPassword(@NonNull String serverPassword) {
-            this.serverPassword = serverPassword;
+        public Builder setServerPassword(String serverPassword) {
+            if (!isNullOrEmpty(serverPassword)) {
+                this.serverPassword = serverPassword;
+            }
+
             return this;
         }
 
-        public Builder setServerUrl(@NonNull String serverUrl) {
+        public Builder setServerUrl(String serverUrl) {
+            if (isNullOrEmpty(serverUrl)) {
+                return this;
+            }
+
             this.serverUrl = serverUrl;
 
             if (!this.serverUrl.startsWith("http")) {
@@ -425,8 +490,7 @@ public final class Uploader {
 
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy Q MM dd DDD HH mm ss", Locale.US);
                 sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-                String[] dtp = sdf.format(new Date())
-                        .split(" ");
+                String[] dtp = sdf.format(new Date()).split(" ");
 
                 for (int a = 0; a < dtc.length; a++) {
                     this.serverUrl = this.serverUrl.replace(dtc[a], dtp[a]);
@@ -439,15 +503,7 @@ public final class Uploader {
         @NonNull
         public Uploader build() {
             if (onProgress == null) {
-                onProgress = (progress) -> Log.i(
-                        TAG,
-                        String.format(
-                                Locale.getDefault(),
-                                "Uploaded: %d/%d bytes (delta=%d)",
-                                progress.done,
-                                progress.total,
-                                progress.delta
-                        )
+                onProgress = (progress) -> Log.i(TAG, String.format(Locale.getDefault(), "Uploaded: %d/%d bytes (delta=%d)", progress.done, progress.total, progress.delta)
                 );
             }
             if (onError == null) {
@@ -457,10 +513,23 @@ public final class Uploader {
                 onComplete = response -> Log.i(TAG, "Uploaded Response: " + response);
             }
 
-            if (serverUrl == null || serverUrl.isEmpty()) {
+            if (isNullOrEmpty(this.serverUrl)) {
                 throw new IllegalStateException("serverUrl is empty!");
             }
+
             return new Uploader(this);
         }
+    }
+
+    @Nullable
+    private static String getServerUrl() {
+        String url = Config.string(Config.Keys.SERVER_URL);
+        return !isNullOrEmpty(url) ? url.strip() : null;
+    }
+
+    @NonNull
+    @Contract("_, _, _, _ -> new")
+    public static Uploader fromConfig(@NonNull Context context, @Nullable OnProgressListener onProgress, @Nullable OnErrorListener onError, @Nullable OnCompleteListener onComplete) {
+        return new Builder(context).setOnProgress(onProgress).setOnComplete(onComplete).setOnError(onError).setServerUrl(getServerUrl()).setServerPassword(getServerPassword()).build();
     }
 }

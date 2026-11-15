@@ -1,13 +1,11 @@
 package me.ocv.partyup.work;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.preference.PreferenceManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -20,7 +18,6 @@ import java.util.function.Consumer;
 import me.ocv.partyup.models.UploadStatus;
 import me.ocv.partyup.models.pojo.UploadWithInfo;
 import me.ocv.partyup.objects.CustomFile;
-import me.ocv.partyup.objects.PrefsKey;
 import me.ocv.partyup.room.repo.UploadRepository;
 import me.ocv.partyup.utils.FileCache;
 import me.ocv.partyup.utils.Uploader;
@@ -75,25 +72,19 @@ public final class UploadWork extends Worker {
             selected.start();
             Log.d("WORKER", String.format("Upload: %s", selected.repository.peek()));
 
-            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
             AtomicReference<Throwable> error = new AtomicReference<>();
-
-            Uploader uploader = new Uploader.Builder(getApplicationContext())
-                    .setServerUrl(preferences.getString(PrefsKey.SERVER_URL, ""))
-                    .setServerPassword(preferences.getString(PrefsKey.SERVER_PASSWORD, ""))
-                    .setOnComplete(response -> selected.complete(cleanResponse(response)))
-                    .setOnProgress(progress -> {
-                        selected.done(progress.done);
-                        if (isStopped()) {
-                            throw new IllegalStateException("Worker was cancelled");
-                        }
-                    }).setOnError(err -> {
-                        selected.fail(err);
-                        error.set(err);
-                    }).build();
+            Uploader uploader = Uploader.fromConfig(getApplicationContext(), progress -> {
+                selected.done(progress.done);
+                if (isStopped()) {
+                    throw new IllegalStateException("Worker was cancelled");
+                }
+            }, err -> {
+                selected.fail(err);
+                error.set(err);
+            }, response -> selected.complete(cleanResponse(response)));
 
             CustomFile customFile = selected.repository.peek().toCustomFile();
-            uploader.upload(customFile); // this should have set share_url, full_url
+            uploader.uploadAndUpdateFile(customFile); // this should have set share_url, full_url
             selected.repository.links(customFile.share_url, customFile.full_url);
 
             Throwable e = error.get();
@@ -199,7 +190,7 @@ public final class UploadWork extends Worker {
         }
     }
 
-    private void updateProgress(UploadWithInfo upload) {
+    private void updateProgress(@NonNull UploadWithInfo upload) {
         setProgressAsync(WorkUtility.progressData(upload.status));
     }
 }

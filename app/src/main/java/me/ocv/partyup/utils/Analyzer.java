@@ -80,7 +80,7 @@ public final class Analyzer {
                 continue;
             }
             // Use original for name, size, etc.
-            // and cached (or not) for actual upload
+            // and cached (or not) for actual uploadAndUpdateFile
 
             CustomFile cf = new CustomFile();
             cf.handle = uriRaw;

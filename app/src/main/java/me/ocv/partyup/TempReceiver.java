@@ -15,7 +15,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.preference.PreferenceManager;
 import androidx.work.WorkManager;
 
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ import java.util.concurrent.Executors;
 
 import me.ocv.partyup.databinding.ActivityTempReceiverBinding;
 import me.ocv.partyup.objects.CustomFile;
-import me.ocv.partyup.objects.PrefsKey;
 import me.ocv.partyup.utils.Analyzer;
 import me.ocv.partyup.utils.FileCache;
 import me.ocv.partyup.utils.NumberUtils;
@@ -55,28 +53,40 @@ public final class TempReceiver extends AppCompatActivity {
             return insets;
         });
 
-        binding.uploadConfirmServerUrl.setText(PreferenceManager.getDefaultSharedPreferences(this).getString(PrefsKey.SERVER_URL, getString(R.string.server_default_url)));
+        binding.uploadConfirmServerUrl.setText(Config.string(Config.Keys.SERVER_URL));
         workManager = WorkManager.getInstance(this);
         List<CustomFile> files = getFilesAndShow();
 
-        binding.uploadConfirmUploadBtn.setEnabled(true);
-        binding.uploadConfirmUploadBtn.setOnClickListener(v -> {
+        if (Config.bool(Config.Keys.AUTOSEND)) {
+            toast("Auto sending...");
+
+            binding.uploadConfirmUploadBtn.setEnabled(false);
             binding.uploadConfirmCancelBtn.setEnabled(false);
 
-            executor.execute(() -> {
-                uploadFiles(files);
-                runOnUiThread(() -> {
-                    showUploadInfo();
-                    toast(String.format("Enqueued %s files!", files.size()));
-                    binding.uploadConfirmUploadBtn.setEnabled(false);
-                });
+            doUpload(files);
+        } else {
+            binding.uploadConfirmUploadBtn.setEnabled(true);
+            binding.uploadConfirmUploadBtn.setOnClickListener(v -> {
+                binding.uploadConfirmCancelBtn.setEnabled(false);
+                doUpload(files);
             });
-        });
 
-        binding.uploadConfirmCancelBtn.setEnabled(true);
-        binding.uploadConfirmCancelBtn.setOnClickListener(v -> {
-            binding.uploadConfirmUploadBtn.setEnabled(false);
-            finish();
+            binding.uploadConfirmCancelBtn.setEnabled(true);
+            binding.uploadConfirmCancelBtn.setOnClickListener(v -> {
+                binding.uploadConfirmUploadBtn.setEnabled(false);
+                finish();
+            });
+        }
+    }
+
+    private void doUpload(List<CustomFile> files) {
+        executor.execute(() -> {
+            uploadFiles(files);
+            runOnUiThread(() -> {
+                showUploadInfo();
+                toast(String.format("Enqueued %s files!", files.size()));
+                binding.uploadConfirmUploadBtn.setEnabled(false);
+            });
         });
     }
 

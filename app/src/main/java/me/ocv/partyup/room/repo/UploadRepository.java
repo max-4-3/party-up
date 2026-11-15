@@ -61,7 +61,7 @@ public final class UploadRepository {
 
     public void update(UploadWithInfo upload) {
         uploadDao.update(upload.status, upload.info);
-        Log.d(TAG, String.format("[%s,%s] updating upload: %s", upload.status.id, upload.info.id, upload));
+        Log.d(TAG, String.format("[%s,%s] updating uploadAndUpdateFile: %s", upload.status.id, upload.info.id, upload));
     }
 
     public long update(UploadStatus status) {
